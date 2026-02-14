@@ -8,6 +8,14 @@ The format follows Keep a Changelog and semantic versioning.
 
 - No entries yet.
 
+## [1.2.1-alpha.16] - 2026-02-14
+
+### Changed
+- Local focus product cards are now more compact (smaller image/thumb area and tighter spacing).
+- Product item labels in local focus list now use a consistent format:
+  - `<nom> - <marque> - <quantité>`
+- Product name cleanup now removes duplicated trailing brand segment before building this formatted label.
+
 ## [1.2.1-alpha.15] - 2026-02-14
 
 ### Changed

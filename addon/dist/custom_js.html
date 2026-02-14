@@ -5989,7 +5989,7 @@
       }
       #dash_chart_overlay .dash-focus-local {
         display: grid;
-        grid-template-columns: minmax(96px, 140px) minmax(0, 1fr);
+        grid-template-columns: minmax(86px, 124px) minmax(0, 1fr);
         gap: 0.75rem;
         align-items: start;
       }
@@ -6057,7 +6057,7 @@
       #dash_chart_overlay .dash-focus-bucket-item {
         position: relative;
         border: 1px solid rgba(255,255,255,0.18);
-        border-radius: 0.52rem;
+        border-radius: 0.46rem;
         background: linear-gradient(150deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
         box-shadow: 0 6px 14px rgba(0,0,0,0.16);
         transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
@@ -6074,9 +6074,9 @@
       #dash_chart_overlay .dash-focus-bucket-product-btn {
         width: 100%;
         margin: 0;
-        padding: 0.28rem;
+        padding: 0.2rem;
         border: 0;
-        border-radius: 0.52rem;
+        border-radius: 0.46rem;
         background: transparent;
         color: inherit;
         display: flex;
@@ -6103,8 +6103,8 @@
       }
       #dash_chart_overlay .dash-focus-bucket-thumb {
         width: 100%;
-        height: 4.2rem;
-        border-radius: 0.46rem;
+        height: 2.6rem;
+        border-radius: 0.36rem;
         border: 1px solid rgba(255,255,255,0.28);
         overflow: hidden;
         flex-shrink: 0;
@@ -6137,7 +6137,7 @@
       #dash_chart_overlay .dash-focus-bucket-name {
         display: block;
         font-weight: 600;
-        font-size: 0.68rem;
+        font-size: 0.58rem;
         line-height: 1.2;
         white-space: nowrap;
         overflow: hidden;
@@ -20536,6 +20536,23 @@
     return parts.join(' • ');
   }
 
+  function focusBucketDisplayName(rowInput) {
+    const row = rowInput && typeof rowInput === 'object' ? rowInput : {};
+    const brand = clean(row.brand || '');
+    const qty = num(row.amount) > 0 ? fmtQtyProduct(num(row.amount), cleanUnitLabel(row.stockUnitName || '')) : '';
+    let name = clean(row.name || t('default_product'));
+    if (brand) {
+      const lowerName = name.toLowerCase();
+      const lowerBrand = brand.toLowerCase();
+      const suffix = ` - ${lowerBrand}`;
+      if (lowerName.endsWith(suffix)) {
+        name = clean(name.slice(0, name.length - suffix.length));
+      }
+    }
+    const parts = [name, brand, qty].map((part) => clean(part)).filter(Boolean);
+    return parts.join(' - ');
+  }
+
   function focusBucketListHtml(focusInput) {
     const focus = focusInput && typeof focusInput === 'object' ? focusInput : null;
     if (!focus || !focusSupportsLocalProductList(focus)) return '';
@@ -20557,7 +20574,7 @@
 
     const rowsHtml = visibleRows.map((row, idx) => {
       const productId = num(row && row.id);
-      const name = clean(row && row.name ? row.name : t('default_product'));
+      const name = focusBucketDisplayName(row);
       const selectable = productId > 0;
       const isSelected = selectedProductId > 0 && productId > 0 && selectedProductId === productId;
       const cascadeClass = expanded ? ' is-cascade' : '';
