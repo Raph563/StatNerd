@@ -11,7 +11,7 @@ Main capabilities:
   - user fields
 - Multi-provider AI tooling.
 - Quantity conversion tooling.
-- GitHub release workflow with alpha/beta/stable channels.
+- GitHub release workflow with automatic alpha and beta/stable channels.
 
 ## Related docs
 

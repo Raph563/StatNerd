@@ -11,7 +11,7 @@ Fonctionnalités principales:
   - attributs utilisateur
 - Outils IA multi-provider.
 - Outils de conversion de quantités.
-- Workflow de releases GitHub avec canaux alpha/beta/stable.
+- Workflow de releases GitHub avec alpha automatique et canaux beta/stable.
 
 ## Documentation liée
 

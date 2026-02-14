@@ -7,7 +7,7 @@
 
 ## Release channels
 
-- `alpha` (default): `vX.Y.Z-alpha.N`
+- `alpha` (automatic on each `main` push): `vX.Y.Z-alpha.N`
 - `beta`: `vX.Y.Z-beta.N`
 - `stable`: `vX.Y.Z`
 
@@ -19,14 +19,20 @@
 3. Update `CHANGELOG.md`.
 4. Commit.
 
-## Run release
+## Automatic alpha (default)
+
+On each push to `main`, workflow `.github/workflows/auto-alpha-release.yml`:
+
+- reads `addon/VERSION`,
+- creates next `vX.Y.Z-alpha.N` tag,
+- pushes the tag,
+- then triggers `.github/workflows/release.yml` to publish the GitHub release.
+
+## Manual release (beta/stable)
 
 PowerShell:
 
 ```powershell
-# alpha (default)
-.\scripts\release.ps1 -Version 1.2.1
-
 # beta
 .\scripts\release.ps1 -Version 1.2.1 -Channel beta
 
@@ -37,9 +43,6 @@ PowerShell:
 Shell:
 
 ```bash
-# alpha (default)
-./scripts/release.sh 1.2.1
-
 # beta
 ./scripts/release.sh 1.2.1 --channel beta
 

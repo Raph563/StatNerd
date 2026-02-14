@@ -9,13 +9,19 @@ cd C:\path\to\repo
 git status
 ```
 
-## 2) Create an alpha release (default)
+## 2) Automatic alpha release
+
+You no longer need to run the alpha command manually:
+
+- commit your changes,
+- push to `main`,
+- workflow auto-creates `vX.Y.Z-alpha.N` and publishes the release.
+
+Manual alpha command (optional):
 
 ```powershell
 .\scripts\release.ps1 -Version 1.2.1
 ```
-
-This creates a tag like `v1.2.1-alpha.N`.
 
 ## 3) Create a beta release
 
@@ -32,7 +38,7 @@ This creates a tag like `v1.2.1-alpha.N`.
 ## 5) Verify on GitHub
 
 1. Open `Actions` in the repository.
-2. Open workflow `Release`.
+2. Open workflows `Auto Alpha Release` then `Release`.
 3. Confirm `publish` job is green.
 4. Open `Releases` and confirm:
    - release tag,

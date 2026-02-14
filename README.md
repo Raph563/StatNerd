@@ -26,6 +26,6 @@ English:
 
 ## Release Channels
 
-- `alpha` (default): `vX.Y.Z-alpha.N`
+- `alpha` (automatic on each push to `main`): `vX.Y.Z-alpha.N`
 - `beta`: `vX.Y.Z-beta.N`
 - `stable`: `vX.Y.Z`

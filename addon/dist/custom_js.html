@@ -715,6 +715,10 @@
   const ADDON_UPDATE_KEY = 'grocy_dash_addon_update_v1';
   const ADDON_RUNTIME_VERSION = '1.2.1';
   const ADDON_UPDATE_DEFAULT_REPOSITORY = 'Raph563/Grocy';
+  const DONNE_AUTHOR_NAME = 'Raph563';
+  const DONNE_REPO_URL = 'https://github.com/Raph563/Grocy';
+  const DONNE_CHANGELOG_URL = `${DONNE_REPO_URL}/blob/main/CHANGELOG.md`;
+  const DONNE_DOCS_URL = `${DONNE_REPO_URL}/tree/main/docs`;
   const BARCODE_LOOKUP_PROVIDER_IDS = ['openfoodfacts', 'openproductsfacts'];
   const PHOTO_SEARCH_ENGINE_IDS = ['google', 'duckduckgo', 'bing'];
   const BRAND_LOGO_SOURCES = [
@@ -1432,7 +1436,7 @@
       overlay_focus_ai_settings_btn: 'Paramètres IA',
       overlay_focus_bucket_see_more: 'Voir plus',
       overlay_focus_bucket_show_more: 'Afficher plus',
-      ai_settings_title: 'Paramètres IA multi-agents',
+      ai_settings_title: 'Paramètres généraux de la donne',
       ai_settings_close: 'Fermer',
       ai_enable_focus: 'Activer l’agent IA sur le focus plein écran',
       ai_provider_active: 'Fournisseur actif',
@@ -1453,13 +1457,27 @@
       ai_save_btn: 'Enregistrer',
       settings_save_btn: 'Sauvegarder',
       settings_save_all_btn: 'Sauvegarder tout',
-      settings_section_interface: 'Interface & validation',
-      settings_section_runtime: 'Moteur IA & fallback',
-      settings_section_providers: 'Fournisseurs IA',
-      settings_section_brand_logos: 'Logos de marques',
-      settings_section_group_logos: 'Logos de groupes',
-      settings_section_addon_compat: 'Compatibilité addon',
+      settings_section_interface: 'Interface & IA',
+      settings_section_runtime: 'Comportement IA',
+      settings_section_providers: 'Fournisseurs IA (manuel)',
+      settings_section_brand_logos: 'Logos marques',
+      settings_section_group_logos: 'Logos groupes',
+      settings_section_addon_compat: 'Compatibilité',
       settings_section_saved: 'Section "{{section}}" sauvegardée.',
+      settings_tabs_general: 'Général',
+      settings_tabs_product_data: 'Données produit',
+      settings_tabs_visuals: 'Logos',
+      settings_tabs_compat: 'Compatibilité',
+      settings_tabs_providers: 'Fournisseurs IA',
+      settings_tabs_update: 'Mises à jour',
+      settings_group_general: 'Réglages généraux',
+      settings_group_product_data: 'Services produit',
+      settings_group_visuals: 'Identité visuelle',
+      settings_group_compat: 'Compatibilité donne',
+      settings_group_providers: 'Fournisseurs IA',
+      settings_group_update: 'Mises à jour & infos',
+      settings_group_reduce: '(réduire)',
+      settings_group_expand: '(ouvrir)',
       addon_compat_desc: 'Ajoute les groupes produits, entités utilisateur et attributs utilisés par l’addon.',
       addon_compat_scope_note: 'Portée: product_groups + userentities + userfields. Détection automatique de l’existant.',
       addon_compat_run_btn: 'Appliquer la compatibilité',
@@ -1488,14 +1506,22 @@
       settings_section_addon_update: 'Mise à jour addon',
       addon_update_desc: 'Vérifie la dernière release GitHub et prépare les commandes de mise à jour locale.',
       addon_update_repo_label: 'Dépôt GitHub (owner/repo)',
-      addon_update_repo_hint: 'Ex: Raph563/Grocy. Le script cible ../config par défaut (Documents/Docker/grocy/config).',
+      addon_update_repo_hint: 'Ex: Raph563/Grocy.',
+      addon_update_include_prerelease_label: 'Inclure versions Alpha/Beta',
+      addon_update_include_prerelease_hint: 'Active la détection et l’installation des prereleases (alpha/beta).',
       addon_update_check_btn: 'Vérifier la version',
       addon_update_open_release_btn: 'Ouvrir la release',
       addon_update_open_release_tag: 'Release {{tag}}',
       addon_update_copy_btn: 'Copier',
       addon_update_cmd_ps_label: 'Commande Windows PowerShell',
       addon_update_cmd_sh_label: 'Commande Linux/macOS',
-      addon_update_cmd_hint: 'Les scripts update-from-github téléchargent la release et remplacent config/data/custom_js.html (backup auto).',
+      addon_update_cmd_hint: 'Les scripts update-from-github téléchargent la release et remplacent config/data/custom_js.html (backup auto). Si Alpha/Beta est actif, la commande inclut aussi les prereleases.',
+      donne_about_title: 'Infos donne',
+      donne_about_author: 'Auteur: {{author}}',
+      donne_about_version: 'Version addon locale: {{version}}',
+      donne_about_release_link: 'Releases GitHub',
+      donne_about_changelog_link: 'Changelog',
+      donne_about_docs_link: 'Documentation',
       addon_update_versions_line: 'Version locale: {{local}} | Dernière release: {{remote}} (tag {{tag}}).',
       addon_update_last_checked: 'Dernière vérification: {{date}}.',
       addon_update_not_checked: 'Aucune vérification encore.',
@@ -1542,8 +1568,8 @@
       provider_link_keys: 'Clés API',
       provider_link_download: 'Téléchargement',
       provider_link_selfhosted: 'Self-hosted',
-      ai_settings_btn_title_configured: 'Paramètres IA ({{provider}} configuré)',
-      ai_settings_btn_title_not_configured: 'Paramètres IA ({{provider}} non configuré)',
+      ai_settings_btn_title_configured: 'Paramètres de la donne (IA: {{provider}} configuré)',
+      ai_settings_btn_title_not_configured: 'Paramètres de la donne (IA: {{provider}} non configuré)',
       ai_mode_goal_perf: 'la réactivité',
       ai_mode_goal_eco: 'l’équilibre coût/perf',
       ai_mode_goal_cheapest: 'le coût minimal',
@@ -2027,7 +2053,7 @@
       overlay_focus_ai_settings_btn: 'AI settings',
       overlay_focus_bucket_see_more: 'See more',
       overlay_focus_bucket_show_more: 'Show more',
-      ai_settings_title: 'Multi-agent AI settings',
+      ai_settings_title: 'Donne general settings',
       ai_settings_close: 'Close',
       ai_enable_focus: 'Enable AI agent on fullscreen focus',
       ai_provider_active: 'Active provider',
@@ -2048,13 +2074,27 @@
       ai_save_btn: 'Save',
       settings_save_btn: 'Save',
       settings_save_all_btn: 'Save all',
-      settings_section_interface: 'Interface & validation',
-      settings_section_runtime: 'AI engine & fallback',
-      settings_section_providers: 'AI providers',
+      settings_section_interface: 'Interface & AI',
+      settings_section_runtime: 'AI behavior',
+      settings_section_providers: 'AI providers (manual)',
       settings_section_brand_logos: 'Brand logos',
       settings_section_group_logos: 'Group logos',
-      settings_section_addon_compat: 'Addon compatibility',
+      settings_section_addon_compat: 'Compatibility',
       settings_section_saved: 'Section "{{section}}" saved.',
+      settings_tabs_general: 'General',
+      settings_tabs_product_data: 'Product data',
+      settings_tabs_visuals: 'Logos',
+      settings_tabs_compat: 'Compatibility',
+      settings_tabs_providers: 'AI providers',
+      settings_tabs_update: 'Updates',
+      settings_group_general: 'General settings',
+      settings_group_product_data: 'Product services',
+      settings_group_visuals: 'Visual identity',
+      settings_group_compat: 'Donne compatibility',
+      settings_group_providers: 'AI providers',
+      settings_group_update: 'Updates & info',
+      settings_group_reduce: '(collapse)',
+      settings_group_expand: '(open)',
       addon_compat_desc: 'Adds product groups, user entities, and fields used by the addon.',
       addon_compat_scope_note: 'Scope: product_groups + userentities + userfields. Existing items are auto-detected.',
       addon_compat_run_btn: 'Apply compatibility',
@@ -2083,14 +2123,22 @@
       settings_section_addon_update: 'Addon update',
       addon_update_desc: 'Checks latest GitHub release and prepares local update commands.',
       addon_update_repo_label: 'GitHub repository (owner/repo)',
-      addon_update_repo_hint: 'Example: Raph563/Grocy. Script targets ../config by default.',
+      addon_update_repo_hint: 'Example: Raph563/Grocy.',
+      addon_update_include_prerelease_label: 'Include Alpha/Beta versions',
+      addon_update_include_prerelease_hint: 'Enable prerelease (alpha/beta) detection and installation.',
       addon_update_check_btn: 'Check version',
       addon_update_open_release_btn: 'Open release',
       addon_update_open_release_tag: 'Release {{tag}}',
       addon_update_copy_btn: 'Copy',
       addon_update_cmd_ps_label: 'Windows PowerShell command',
       addon_update_cmd_sh_label: 'Linux/macOS command',
-      addon_update_cmd_hint: 'update-from-github scripts download the release and replace config/data/custom_js.html (auto backup).',
+      addon_update_cmd_hint: 'update-from-github scripts download release and replace config/data/custom_js.html (auto backup). When Alpha/Beta is enabled, command also allows prereleases.',
+      donne_about_title: 'Donne info',
+      donne_about_author: 'Author: {{author}}',
+      donne_about_version: 'Local addon version: {{version}}',
+      donne_about_release_link: 'GitHub releases',
+      donne_about_changelog_link: 'Changelog',
+      donne_about_docs_link: 'Documentation',
       addon_update_versions_line: 'Local version: {{local}} | Latest release: {{remote}} (tag {{tag}}).',
       addon_update_last_checked: 'Last check: {{date}}.',
       addon_update_not_checked: 'Not checked yet.',
@@ -2137,8 +2185,8 @@
       provider_link_keys: 'API keys',
       provider_link_download: 'Download',
       provider_link_selfhosted: 'Self-hosted',
-      ai_settings_btn_title_configured: 'AI settings ({{provider}} configured)',
-      ai_settings_btn_title_not_configured: 'AI settings ({{provider}} not configured)',
+      ai_settings_btn_title_configured: 'Donne settings (AI: {{provider}} configured)',
+      ai_settings_btn_title_not_configured: 'Donne settings (AI: {{provider}} not configured)',
       ai_mode_goal_perf: 'responsiveness',
       ai_mode_goal_eco: 'cost/perf balance',
       ai_mode_goal_cheapest: 'minimum cost',
@@ -7101,6 +7149,57 @@
         max-height: 68vh;
         overflow-y: auto;
       }
+      #dash_ai_settings_overlay #dash_donne_settings_tabs {
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        background: rgba(24,29,35,0.95);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 0.5rem;
+        padding: 0.4rem 0.45rem 0.3rem;
+        backdrop-filter: blur(4px);
+      }
+      #dash_ai_settings_overlay .dash-donne-group {
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 0.55rem;
+        background: linear-gradient(160deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      }
+      #dash_ai_settings_overlay .dash-donne-group > summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 0.55rem 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid transparent;
+      }
+      #dash_ai_settings_overlay .dash-donne-group > summary::-webkit-details-marker {
+        display: none;
+      }
+      #dash_ai_settings_overlay .dash-donne-group[open] > summary {
+        border-bottom-color: rgba(255,255,255,0.09);
+      }
+      #dash_ai_settings_overlay .dash-donne-group .dash-donne-group-title {
+        font-weight: 600;
+      }
+      #dash_ai_settings_overlay .dash-donne-group .dash-donne-group-when-open {
+        display: none;
+      }
+      #dash_ai_settings_overlay .dash-donne-group[open] .dash-donne-group-when-open {
+        display: inline;
+      }
+      #dash_ai_settings_overlay .dash-donne-group[open] .dash-donne-group-when-closed {
+        display: none;
+      }
+      #dash_ai_settings_overlay .dash-donne-group .dash-donne-group-body {
+        padding: 0.45rem 0.65rem 0.65rem;
+      }
+      #dash_ai_settings_overlay .dash-donne-group .dash-settings-section {
+        margin-top: 0 !important;
+      }
+      #dash_ai_settings_overlay .dash-donne-group .dash-settings-section + .dash-settings-section {
+        margin-top: 0.75rem !important;
+      }
       #dash_ai_settings_overlay .custom-control.custom-switch {
         position: relative;
         display: flex;
@@ -7586,6 +7685,7 @@
   function defaultAddonUpdateState() {
     return {
       repository: ADDON_UPDATE_DEFAULT_REPOSITORY,
+      includePrerelease: false,
       checkedAt: '',
       latestTag: '',
       latestVersion: '',
@@ -7605,6 +7705,7 @@
     const repository = addonUpdateRepositoryText(state.repository || ADDON_UPDATE_DEFAULT_REPOSITORY);
     return {
       repository,
+      includePrerelease: state.includePrerelease === true,
       checkedAt: clean(state.checkedAt || ''),
       latestTag: clean(state.latestTag || ''),
       latestVersion: clean(state.latestVersion || ''),
@@ -7716,6 +7817,9 @@
     const repo = clean(state.repository || ADDON_UPDATE_DEFAULT_REPOSITORY);
     const tag = clean(state.latestTag || '');
     let command = `cd addon\\scripts; .\\update-from-github.ps1 -Repository ${addonUpdatePsQuote(repo)}`;
+    if (state.includePrerelease === true) {
+      command += ' -AllowPrerelease';
+    }
     if (tag) {
       command += ` -ReleaseTag ${addonUpdatePsQuote(tag)}`;
     }
@@ -7727,6 +7831,9 @@
     const repo = clean(state.repository || ADDON_UPDATE_DEFAULT_REPOSITORY);
     const tag = clean(state.latestTag || '');
     let command = `cd addon/scripts && ./update-from-github.sh --repository ${addonUpdateShQuote(repo)}`;
+    if (state.includePrerelease === true) {
+      command += ' --allow-prerelease';
+    }
     if (tag) {
       command += ` --tag ${addonUpdateShQuote(tag)}`;
     }
@@ -7741,13 +7848,17 @@
       || null;
   }
 
-  async function fetchAddonLatestReleaseInfo(repositoryInput = '') {
+  async function fetchAddonLatestReleaseInfo(repositoryInput = '', optionsInput = {}) {
+    const options = optionsInput && typeof optionsInput === 'object' ? optionsInput : {};
+    const includePrerelease = options.includePrerelease === true;
     const repo = addonUpdateRepositoryParts(repositoryInput || '');
     if (!repo) {
       throw new Error(t('addon_update_repo_invalid'));
     }
 
-    const endpoint = `https://api.github.com/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.name)}/releases/latest`;
+    const endpoint = includePrerelease
+      ? `https://api.github.com/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.name)}/releases?per_page=20`
+      : `https://api.github.com/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.name)}/releases/latest`;
     let response = null;
     try {
       response = await fetch(endpoint, {
@@ -7774,7 +7885,17 @@
       throw new Error(message || t('focus_unknown_error'));
     }
 
-    const payload = await response.json();
+    const rawPayload = await response.json();
+    const payload = includePrerelease
+      ? (Array.isArray(rawPayload)
+        ? (rawPayload.find((row) => row && row.draft !== true && clean(row.tag_name || '')) || null)
+        : null)
+      : rawPayload;
+
+    if (!payload) {
+      throw new Error(t('addon_update_status_release_missing'));
+    }
+
     const tag = clean(payload && payload.tag_name ? payload.tag_name : '');
     const version = addonUpdateVersionFromTag(tag);
     const releaseUrl = clean(payload && payload.html_url ? payload.html_url : '');
@@ -8888,6 +9009,7 @@
     const busy = S.addonUpdateChecking === true;
     const ids = [
       'dash_addon_update_repo',
+      'dash_addon_update_include_prerelease',
       'dash_addon_update_check',
       'dash_addon_update_copy_ps',
       'dash_addon_update_copy_sh',
@@ -8928,12 +9050,15 @@
   async function runAddonUpdateVersionCheck() {
     if (S.addonUpdateChecking) return null;
     const repoInput = document.getElementById('dash_addon_update_repo');
+    const prereleaseToggle = document.getElementById('dash_addon_update_include_prerelease');
+    const includePrerelease = prereleaseToggle?.checked === true;
     const candidate = addonUpdateRepositoryText(repoInput?.value || addonUpdateState().repository || ADDON_UPDATE_DEFAULT_REPOSITORY);
     const parts = addonUpdateRepositoryParts(candidate);
     if (!parts) {
       const msg = t('addon_update_repo_invalid');
       const invalidState = saveAddonUpdateState({
         repository: clean(repoInput?.value || candidate || ADDON_UPDATE_DEFAULT_REPOSITORY),
+        includePrerelease,
         checkedAt: new Date().toISOString(),
         lastError: msg,
         lastStatus: t('addon_update_status_error', { msg }),
@@ -8947,14 +9072,14 @@
     }
 
     if (repoInput) repoInput.value = parts.repository;
-    saveAddonUpdateState({ repository: parts.repository, lastError: '' });
+    saveAddonUpdateState({ repository: parts.repository, includePrerelease, lastError: '' });
 
     S.addonUpdateChecking = true;
     syncAddonUpdateSettingsSection();
 
     let finalState = null;
     try {
-      const release = await fetchAddonLatestReleaseInfo(parts.repository);
+      const release = await fetchAddonLatestReleaseInfo(parts.repository, { includePrerelease });
       const localVersion = clean(ADDON_RUNTIME_VERSION || '') || t('addon_update_version_unknown');
       const remoteVersion = clean(release.version || addonUpdateVersionFromTag(release.tag || '')) || t('addon_update_version_unknown');
       const tag = clean(release.tag || '-');
@@ -8985,6 +9110,7 @@
 
       finalState = saveAddonUpdateState({
         repository: release.repository || parts.repository,
+        includePrerelease,
         checkedAt: new Date().toISOString(),
         latestTag: clean(release.tag || ''),
         latestVersion: clean(release.version || ''),
@@ -8999,6 +9125,7 @@
       const message = clean(error && error.message ? error.message : String(error)) || t('focus_unknown_error');
       finalState = saveAddonUpdateState({
         repository: parts.repository,
+        includePrerelease,
         checkedAt: new Date().toISOString(),
         lastError: message,
         lastStatus: t('addon_update_status_error', { msg: message }),
@@ -9019,7 +9146,9 @@
   function fillAddonUpdateSettingsForm() {
     const state = addonUpdateState();
     const repoInput = document.getElementById('dash_addon_update_repo');
+    const prereleaseToggle = document.getElementById('dash_addon_update_include_prerelease');
     if (repoInput) repoInput.value = clean(state.repository || ADDON_UPDATE_DEFAULT_REPOSITORY);
+    if (prereleaseToggle) prereleaseToggle.checked = state.includePrerelease === true;
     syncAddonUpdateCommandFields(state);
     syncAddonUpdateReleaseLink(state);
     syncAddonUpdateVersionSummary(state);
@@ -9646,6 +9775,7 @@
     setFactsApiTestStatus('', 'muted');
     syncAddonCompatibilitySettingsSection();
     fillAddonUpdateSettingsForm();
+    collapseDonneSettingsGroups();
     if (status) status.textContent = '';
   }
 
@@ -9696,10 +9826,54 @@
     };
   }
 
+  function readAiSettingsFormNonProvider() {
+    const base = normalizeAiSettings(aiSettings());
+    updateFallbackOrderStateFromUi();
+    const enabled = document.getElementById('dash_ai_enabled')?.checked === true;
+    const activeProvider = normalizeProviderId(document.getElementById('dash_ai_provider')?.value || base.activeProvider);
+    const focusMode = normalizeAiFocusMode(document.getElementById('dash_ai_focus_mode')?.value || base.focusMode);
+    const validationMode = selectedValidationModeFromForm(base);
+    const useFallback = validationMode === 'fallback_chain' && document.getElementById('dash_ai_fallback_enabled')?.checked === true;
+    const uiLanguageMode = selectedUiLanguageModeFromForm(base);
+    const fallbackList = document.getElementById('dash_ai_fallback_list');
+    const fallbackProviders = validationMode === 'fallback_chain'
+      ? orderedFallbackProvidersFromUi(activeProvider, fallbackList)
+      : [];
+    const temperature = clamp(num(document.getElementById('dash_ai_temp')?.value || '0.25'), 0, 1.2);
+    const timeoutMs = clamp(num(document.getElementById('dash_ai_timeout')?.value || '18000'), 3000, 120000);
+
+    return normalizeAiSettings({
+      ...base,
+      enabled,
+      activeProvider,
+      useFallback,
+      focusMode,
+      validationMode,
+      uiLanguageMode,
+      fallbackProviders,
+      temperature,
+      timeoutMs,
+      providers: base.providers,
+    });
+  }
+
   function saveAiSettingsFromCurrentForm(sectionLabel = '') {
     const base = normalizeAiSettings(aiSettings());
     const candidate = normalizeAiSettings(readAiSettingsForm());
     candidate.uiLanguageMode = normalizeUiLanguageMode(base.uiLanguageMode);
+    const saved = saveAiSettings(candidate);
+    syncAiProviderBadges(saved);
+    syncAiSettingsButton();
+    clearAiCache();
+    if (S.overlayFocus) renderOverlayFocusCard(S.overlayFocus, true, 'manual');
+    if (sectionLabel) {
+      setAiSettingsStatus(t('settings_section_saved', { section: sectionLabel }), 'success');
+    }
+    return saved;
+  }
+
+  function saveAiNonProviderSettingsFromForm(sectionLabel = '') {
+    const candidate = readAiSettingsFormNonProvider();
     const saved = saveAiSettings(candidate);
     syncAiProviderBadges(saved);
     syncAiSettingsButton();
@@ -9774,6 +9948,7 @@
       'dash_addon_compat_map',
       'dash_addon_compat_reoffer',
       'dash_addon_update_repo',
+      'dash_addon_update_include_prerelease',
       'dash_addon_update_check',
       'dash_addon_update_copy_ps',
       'dash_addon_update_copy_sh',
@@ -11093,6 +11268,13 @@
         </div>
       </div>
       <div class="form-group mb-2">
+        <div class="custom-control custom-switch">
+          <input type="checkbox" class="custom-control-input" id="dash_addon_update_include_prerelease">
+          <label class="custom-control-label" for="dash_addon_update_include_prerelease">${t('addon_update_include_prerelease_label')}</label>
+        </div>
+        <div class="small text-muted mt-1">${t('addon_update_include_prerelease_hint')}</div>
+      </div>
+      <div class="form-group mb-2">
         <label for="dash_addon_update_cmd_ps" class="mb-1">${t('addon_update_cmd_ps_label')}</label>
         <div class="input-group input-group-sm">
           <input id="dash_addon_update_cmd_ps" type="text" class="form-control form-control-sm" readonly>
@@ -11133,6 +11315,26 @@
       syncAddonUpdateVersionSummary(next);
       syncAddonUpdateSettingsSection();
     });
+    section.querySelector('#dash_addon_update_include_prerelease')?.addEventListener('change', (event) => {
+      const target = event && event.target ? event.target : null;
+      const enabled = !!(target && target.checked === true);
+      const next = saveAddonUpdateState({
+        includePrerelease: enabled,
+        checkedAt: '',
+        latestTag: '',
+        latestVersion: '',
+        releaseUrl: '',
+        assetUrl: '',
+        assetName: '',
+        lastStatus: '',
+        lastStatusLevel: 'muted',
+        lastError: '',
+      });
+      syncAddonUpdateCommandFields(next);
+      syncAddonUpdateReleaseLink(next);
+      syncAddonUpdateVersionSummary(next);
+      syncAddonUpdateSettingsSection();
+    });
 
     section.querySelector('#dash_addon_update_check')?.addEventListener('click', async () => {
       await runAddonUpdateVersionCheck();
@@ -11147,6 +11349,196 @@
     fillAddonUpdateSettingsForm();
   }
 
+  function ensureDonneSettingsAboutInfoBlock() {
+    const section = document.getElementById('dash_addon_update_section');
+    if (!section) return;
+    if (document.getElementById('dash_donne_about_info')) return;
+    const block = document.createElement('div');
+    block.id = 'dash_donne_about_info';
+    block.className = 'small text-muted mt-3 pt-2 border-top';
+    block.innerHTML = `
+      <div class="font-weight-bold mb-1">${t('donne_about_title')}</div>
+      <div>${escapeHtml(t('donne_about_author', { author: DONNE_AUTHOR_NAME }))}</div>
+      <div>${escapeHtml(t('donne_about_version', { version: ADDON_RUNTIME_VERSION }))}</div>
+      <div class="mt-1 d-flex flex-wrap">
+        <a class="mr-2" href="${escapeHtml(DONNE_REPO_URL + '/releases')}" target="_blank" rel="noopener noreferrer">${escapeHtml(t('donne_about_release_link'))}</a>
+        <a class="mr-2" href="${escapeHtml(DONNE_CHANGELOG_URL)}" target="_blank" rel="noopener noreferrer">${escapeHtml(t('donne_about_changelog_link'))}</a>
+        <a href="${escapeHtml(DONNE_DOCS_URL)}" target="_blank" rel="noopener noreferrer">${escapeHtml(t('donne_about_docs_link'))}</a>
+      </div>
+    `;
+    section.appendChild(block);
+  }
+
+  function donneSettingsGroupDefinitions() {
+    return [
+      {
+        id: 'general',
+        tabKey: 'settings_tabs_general',
+        titleKey: 'settings_group_general',
+        sectionIds: ['dash_settings_interface_section', 'dash_settings_runtime_section'],
+      },
+      {
+        id: 'product_data',
+        tabKey: 'settings_tabs_product_data',
+        titleKey: 'settings_group_product_data',
+        sectionIds: ['dash_photo_search_section', 'dash_barcode_lookup_section', 'dash_facts_api_test_section'],
+      },
+      {
+        id: 'visuals',
+        tabKey: 'settings_tabs_visuals',
+        titleKey: 'settings_group_visuals',
+        sectionIds: ['dash_settings_brand_logo_section', 'dash_settings_group_logo_section'],
+      },
+      {
+        id: 'compat',
+        tabKey: 'settings_tabs_compat',
+        titleKey: 'settings_group_compat',
+        sectionIds: ['dash_addon_compat_section'],
+      },
+      {
+        id: 'providers',
+        tabKey: 'settings_tabs_providers',
+        titleKey: 'settings_group_providers',
+        sectionIds: ['dash_settings_providers_section'],
+      },
+      {
+        id: 'updates',
+        tabKey: 'settings_tabs_update',
+        titleKey: 'settings_group_update',
+        sectionIds: ['dash_addon_update_section'],
+      },
+    ];
+  }
+
+  function setDonneSettingsActiveTab(tabId = '') {
+    const active = clean(tabId || '');
+    document.querySelectorAll('#dash_donne_settings_tabs [data-donne-settings-tab]').forEach((button) => {
+      const id = clean(button.getAttribute('data-donne-settings-tab') || '');
+      const selected = id && id === active;
+      button.classList.toggle('btn-outline-info', selected);
+      button.classList.toggle('btn-outline-secondary', !selected);
+    });
+  }
+
+  function openDonneSettingsGroup(groupId = '', { scroll = true } = {}) {
+    const target = clean(groupId || '');
+    if (!target) return;
+    const defs = donneSettingsGroupDefinitions();
+    defs.forEach((def) => {
+      const details = document.getElementById(`dash_donne_group_${def.id}`);
+      if (!details) return;
+      details.open = def.id === target;
+    });
+    setDonneSettingsActiveTab(target);
+    const node = document.getElementById(`dash_donne_group_${target}`);
+    if (node && scroll) {
+      try {
+        node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (_err) {
+        node.scrollIntoView();
+      }
+    }
+  }
+
+  function collapseDonneSettingsGroups() {
+    const defs = donneSettingsGroupDefinitions();
+    defs.forEach((def) => {
+      const details = document.getElementById(`dash_donne_group_${def.id}`);
+      if (!details) return;
+      details.open = false;
+    });
+    setDonneSettingsActiveTab('');
+  }
+
+  function createDonneSettingsGroupNode(definitionInput = null) {
+    const def = definitionInput && typeof definitionInput === 'object' ? definitionInput : null;
+    if (!def || !def.id) return null;
+    const details = document.createElement('details');
+    details.id = `dash_donne_group_${def.id}`;
+    details.className = 'dash-donne-group mb-2';
+    details.open = false;
+    details.innerHTML = `
+      <summary class="dash-donne-group-summary">
+        <span class="dash-donne-group-title">${escapeHtml(t(def.titleKey || ''))}</span>
+        <span class="dash-donne-group-toggle small text-muted">
+          <span class="dash-donne-group-when-open">${escapeHtml(t('settings_group_reduce'))}</span>
+          <span class="dash-donne-group-when-closed">${escapeHtml(t('settings_group_expand'))}</span>
+        </span>
+      </summary>
+      <div class="dash-donne-group-body pt-2"></div>
+    `;
+    const groupBody = details.querySelector('.dash-donne-group-body');
+    const sectionIds = Array.isArray(def.sectionIds) ? def.sectionIds : [];
+    sectionIds.forEach((sectionId) => {
+      const node = document.getElementById(sectionId);
+      if (!node || !groupBody) return;
+      groupBody.appendChild(node);
+    });
+    return details;
+  }
+
+  function ensureDonneSettingsLayout() {
+    const overlay = document.getElementById('dash_ai_settings_overlay');
+    if (!overlay) return;
+    const body = overlay.querySelector('.card-body');
+    if (!body) return;
+
+    const defs = donneSettingsGroupDefinitions();
+    if (!defs.length) return;
+
+    let tabs = document.getElementById('dash_donne_settings_tabs');
+    if (!tabs) {
+      tabs = document.createElement('div');
+      tabs.id = 'dash_donne_settings_tabs';
+      tabs.className = 'd-flex flex-wrap align-items-center mb-2';
+      body.insertBefore(tabs, body.firstChild);
+    }
+
+    tabs.innerHTML = defs
+      .map((def) => `<button type="button" class="btn btn-outline-secondary btn-sm mr-1 mb-1" data-donne-settings-tab="${escapeHtml(def.id)}">${escapeHtml(t(def.tabKey || ''))}</button>`)
+      .join('');
+    tabs.querySelectorAll('[data-donne-settings-tab]').forEach((button) => {
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        openDonneSettingsGroup(clean(button.getAttribute('data-donne-settings-tab') || ''), { scroll: true });
+      });
+    });
+
+    let groupsHost = document.getElementById('dash_donne_settings_groups');
+    const footerAnchor = body.querySelector('.dash-ai-settings-hint');
+    if (!groupsHost) {
+      groupsHost = document.createElement('div');
+      groupsHost.id = 'dash_donne_settings_groups';
+      if (footerAnchor && footerAnchor.parentNode === body) {
+        body.insertBefore(groupsHost, footerAnchor);
+      } else {
+        body.appendChild(groupsHost);
+      }
+    } else if (footerAnchor && groupsHost.parentNode === body) {
+      body.insertBefore(groupsHost, footerAnchor);
+    }
+
+    defs.forEach((def) => {
+      const existing = document.getElementById(`dash_donne_group_${def.id}`);
+      const node = existing || createDonneSettingsGroupNode(def);
+      if (!node) return;
+      if (!existing) {
+        groupsHost.appendChild(node);
+      } else {
+        const groupBody = existing.querySelector('.dash-donne-group-body');
+        (def.sectionIds || []).forEach((sectionId) => {
+          const sectionNode = document.getElementById(sectionId);
+          if (!groupBody || !sectionNode) return;
+          if (sectionNode.parentNode !== groupBody) {
+            groupBody.appendChild(sectionNode);
+          }
+        });
+      }
+    });
+
+    collapseDonneSettingsGroups();
+  }
+
   function initAiSettingsOverlay() {
     if (document.getElementById('dash_ai_settings_overlay')) return;
     const overlay = document.createElement('div');
@@ -11159,7 +11551,7 @@
           <button id="dash_ai_close" type="button" class="btn btn-sm btn-outline-secondary">${t('ai_settings_close')}</button>
         </div>
         <div class="card-body">
-          <div class="dash-settings-section p-2">
+          <div id="dash_settings_interface_section" class="dash-settings-section p-2">
             <div class="small font-weight-bold mb-2">${t('settings_section_interface')}</div>
             <div class="form-group mb-2 pb-1 border-bottom">
             <div class="custom-control custom-switch">
@@ -11193,7 +11585,7 @@
             </div>
           </div>
 
-          <div class="dash-settings-section p-2 mt-3">
+          <div id="dash_settings_runtime_section" class="dash-settings-section p-2 mt-3">
             <div class="small font-weight-bold mb-2">${t('settings_section_runtime')}</div>
             <div class="form-row">
             <div class="form-group col-md-4 mb-2">
@@ -11235,7 +11627,7 @@
             </div>
           </div>
 
-          <div class="dash-settings-section p-2 mt-3">
+          <div id="dash_settings_providers_section" class="dash-settings-section p-2 mt-3">
             <div class="small font-weight-bold mb-2">${t('settings_section_providers')}</div>
             <div class="small text-muted mb-2">${t('ai_provider_configs')}</div>
             <div id="dash_ai_provider_forms"></div>
@@ -11244,7 +11636,7 @@
             </div>
           </div>
 
-          <div class="dash-brand-logo-settings dash-settings-section p-2 mt-3">
+          <div id="dash_settings_brand_logo_section" class="dash-brand-logo-settings dash-settings-section p-2 mt-3">
             <div class="d-flex justify-content-between align-items-center flex-wrap">
               <div class="small font-weight-bold">${t('settings_section_brand_logos')}</div>
               <div class="btn-group btn-group-sm mt-1 mt-sm-0">
@@ -11299,7 +11691,7 @@
             </div>
           </div>
 
-          <div class="dash-brand-logo-settings dash-settings-section p-2 mt-3">
+          <div id="dash_settings_group_logo_section" class="dash-brand-logo-settings dash-settings-section p-2 mt-3">
             <div class="d-flex justify-content-between align-items-center flex-wrap">
               <div class="small font-weight-bold">${t('settings_section_group_logos')}</div>
             </div>
@@ -11355,12 +11747,18 @@
     ensurePhotoSearchSettingsSection();
     ensureAddonCompatibilitySection();
     ensureAddonUpdateSettingsSection();
+    ensureDonneSettingsAboutInfoBlock();
+    ensureDonneSettingsLayout();
 
     document.getElementById('dash_ai_close')?.addEventListener('click', closeAiSettingsOverlay);
     document.getElementById('dash_ai_provider')?.addEventListener('change', () => {
       syncAiProviderUiFromSelection();
       syncAiProviderBadges();
       clearAiProviderValidationUi();
+      saveAiNonProviderSettingsFromForm('');
+    });
+    document.getElementById('dash_ai_enabled')?.addEventListener('change', () => {
+      saveAiNonProviderSettingsFromForm('');
     });
     document.querySelectorAll('#dash_ui_lang_switch [data-ui-lang]').forEach((button) => {
       button.addEventListener('click', (event) => {
@@ -11374,35 +11772,36 @@
         syncValidationModeButtons(button.dataset.aiValidation || 'single');
         syncAiProviderUiFromSelection();
         clearAiProviderValidationUi();
+        saveAiNonProviderSettingsFromForm('');
       });
     });
     document.getElementById('dash_ai_save_interface')?.addEventListener('click', () => {
-      saveAiSettingsFromCurrentForm(t('settings_section_interface'));
+      saveAiNonProviderSettingsFromForm(t('settings_section_interface'));
     });
     document.getElementById('dash_ai_save_runtime')?.addEventListener('click', () => {
-      saveAiSettingsFromCurrentForm(t('settings_section_runtime'));
+      saveAiNonProviderSettingsFromForm(t('settings_section_runtime'));
     });
     document.getElementById('dash_photo_search_engine')?.addEventListener('change', () => {
       syncPhotoSearchSettingsHint();
-      setPhotoSearchSettingsStatus('', 'muted');
+      savePhotoSearchSettingsFromForm(false);
     });
     document.getElementById('dash_photo_search_off_name_fallback')?.addEventListener('change', () => {
-      setPhotoSearchSettingsStatus('', 'muted');
+      savePhotoSearchSettingsFromForm(false);
     });
     document.getElementById('dash_photo_search_save')?.addEventListener('click', () => {
       savePhotoSearchSettingsFromForm(true);
     });
     document.getElementById('dash_barcode_lookup_provider')?.addEventListener('change', () => {
       syncBarcodeLookupSettingsHint();
-      setBarcodeLookupSettingsStatus('', 'muted');
+      saveBarcodeLookupSettingsFromForm(false);
     });
     document.getElementById('dash_barcode_lookup_enabled')?.addEventListener('change', () => {
       syncBarcodeLookupSettingsHint();
-      setBarcodeLookupSettingsStatus('', 'muted');
+      saveBarcodeLookupSettingsFromForm(false);
     });
     document.getElementById('dash_barcode_lookup_auto_fallback')?.addEventListener('change', () => {
       syncBarcodeLookupSettingsHint();
-      setBarcodeLookupSettingsStatus('', 'muted');
+      saveBarcodeLookupSettingsFromForm(false);
     });
     document.getElementById('dash_barcode_lookup_save')?.addEventListener('click', () => {
       saveBarcodeLookupSettingsFromForm(true);
@@ -11425,15 +11824,24 @@
         ? t('ai_mode_goal_perf')
         : (mode.id === 'eco' ? t('ai_mode_goal_eco') : t('ai_mode_goal_cheapest'));
       setAiSettingsStatus(t('ai_mode_changed', { mode: mode.label, goal }), 'info');
+      saveAiNonProviderSettingsFromForm('');
+    });
+    document.getElementById('dash_ai_temp')?.addEventListener('change', () => {
+      saveAiNonProviderSettingsFromForm('');
+    });
+    document.getElementById('dash_ai_timeout')?.addEventListener('change', () => {
+      saveAiNonProviderSettingsFromForm('');
     });
     document.getElementById('dash_ai_fallback_enabled')?.addEventListener('change', () => {
       syncAiProviderUiFromSelection();
       syncAiProviderBadges();
       clearAiProviderValidationUi();
+      saveAiNonProviderSettingsFromForm('');
     });
     document.getElementById('dash_ai_fallback_list')?.addEventListener('change', () => {
       updateFallbackOrderStateFromUi();
       clearAiProviderValidationUi();
+      saveAiNonProviderSettingsFromForm('');
     });
     document.getElementById('dash_ai_provider_forms')?.addEventListener('input', (event) => {
       syncAiProviderBadges();
@@ -11524,9 +11932,11 @@
     document.getElementById('dash_brand_logo_source')?.addEventListener('change', () => {
       applyBrandLogoSectionFormToState();
       renderBrandLogoEditor({ keepUrl: true, keepMenuOpen: isBrandLogoMenuOpen() });
+      saveBrandLogoSectionSettings(false);
     });
-    document.getElementById('dash_brand_logo_logodev_token')?.addEventListener('input', () => {
+    document.getElementById('dash_brand_logo_logodev_token')?.addEventListener('change', () => {
       applyBrandLogoSectionFormToState();
+      saveBrandLogoSectionSettings(false);
     });
     document.getElementById('dash_brand_logo_save_section')?.addEventListener('click', () => {
       saveBrandLogoSectionSettings(true);
