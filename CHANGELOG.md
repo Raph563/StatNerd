@@ -8,6 +8,12 @@ The format follows Keep a Changelog and semantic versioning.
 
 - No entries yet.
 
+## [1.2.1-alpha.10] - 2026-02-14
+
+### Fixed
+- Chart card action controls are now pinned to the top-right of each card header instead of sticking near the title.
+- Removed conflicting Bootstrap `d-flex` header class injection that overrode the custom chart header grid alignment.
+
 ## [1.2.1-alpha.9] - 2026-02-14
 
 ### Added

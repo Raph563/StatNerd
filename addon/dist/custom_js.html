@@ -13573,8 +13573,8 @@
       label.className = 'dash-chart-title-label';
       label.setAttribute('data-chart-title-for', chartId);
       title.textContent = '';
-      title.classList.remove('justify-content-between', 'align-items-center');
-      title.classList.add('d-flex', 'dash-chart-head');
+      title.classList.remove('d-flex', 'justify-content-between', 'align-items-center');
+      title.classList.add('dash-chart-head');
       title.appendChild(label);
 
       const controls = document.createElement('div');
