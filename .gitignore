@@ -24,6 +24,10 @@ tmp_*.csv
 *.tmp
 *.log
 
+# Desktop relay local artifacts
+desktop/relay/node_modules/
+desktop/relay/dist/
+
 # Keep distributable addon
 !addon/
 !addon/dist/

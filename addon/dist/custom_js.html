@@ -149,6 +149,7 @@
     addonCompatMappingResolve: null,
     addonUpdateState: null,
     addonUpdateChecking: false,
+    addonUpdateInstalling: false,
     addonUpdateReleaseChoices: [],
     addonUpdateLocalVersionPromise: null,
   };
@@ -718,6 +719,7 @@
   const ADDON_RUNTIME_VERSION = '1.2.1';
   const ADDON_UPDATE_DEFAULT_REPOSITORY = 'Raph563/Grocy';
   const ADDON_UPDATE_DEFAULT_LOCAL_ROOT = 'C:\\Users\\Admin\\Documents\\Docker\\grocy';
+  const ADDON_UPDATE_RELAY_BASE_URL = 'http://127.0.0.1:17863';
   const STATNERD_AUTHOR_NAME = 'Raph563';
   const STATNERD_REPO_URL = 'https://github.com/Raph563/Grocy';
   const STATNERD_CHANGELOG_URL = `${STATNERD_REPO_URL}/blob/main/CHANGELOG.md`;
@@ -1516,6 +1518,14 @@
       addon_update_local_root_pick_fail: 'Sélection impossible depuis ce navigateur. Renseigne le dossier manuellement.',
       addon_update_check_stable_btn: 'Vérifier stable',
       addon_update_check_prerelease_btn: 'Vérifier alpha/bêta',
+      addon_update_run_bridge_btn: 'Mettre à jour automatiquement',
+      addon_update_bridge_test_btn: 'Tester l’app desktop',
+      addon_update_bridge_hint: 'Nécessite l’app desktop StatNerd Relay lancée (Windows/macOS).',
+      addon_update_bridge_status_ready: 'App desktop détectée.',
+      addon_update_bridge_status_missing: 'App desktop introuvable. Lance StatNerd Relay.',
+      addon_update_bridge_status_running: 'Mise à jour en cours via app desktop...',
+      addon_update_bridge_status_success: 'Mise à jour terminée via app desktop.',
+      addon_update_bridge_status_error: 'Mise à jour desktop en échec: {{msg}}',
       addon_update_open_release_btn: 'Ouvrir la release',
       addon_update_open_release_tag: 'Release {{tag}}',
       addon_update_copy_btn: 'Copier',
@@ -2143,6 +2153,14 @@
       addon_update_local_root_pick_fail: 'Folder selection is unavailable in this browser. Enter the path manually.',
       addon_update_check_stable_btn: 'Check stable',
       addon_update_check_prerelease_btn: 'Check alpha/beta',
+      addon_update_run_bridge_btn: 'Update automatically',
+      addon_update_bridge_test_btn: 'Test desktop app',
+      addon_update_bridge_hint: 'Requires the StatNerd Relay desktop app running (Windows/macOS).',
+      addon_update_bridge_status_ready: 'Desktop app detected.',
+      addon_update_bridge_status_missing: 'Desktop app not found. Start StatNerd Relay.',
+      addon_update_bridge_status_running: 'Updating through desktop app...',
+      addon_update_bridge_status_success: 'Update completed through desktop app.',
+      addon_update_bridge_status_error: 'Desktop update failed: {{msg}}',
       addon_update_open_release_btn: 'Open release',
       addon_update_open_release_tag: 'Release {{tag}}',
       addon_update_copy_btn: 'Copy',
@@ -7970,6 +7988,109 @@
     return command;
   }
 
+  function addonUpdateRelayUrl(pathInput = '') {
+    const path = String(pathInput || '').replace(/^\/+/, '');
+    return `${ADDON_UPDATE_RELAY_BASE_URL}/${path}`;
+  }
+
+  async function addonUpdateRelayHealthCheck() {
+    try {
+      const response = await fetch(addonUpdateRelayUrl('health'), { method: 'GET', cache: 'no-store' });
+      if (!response || !response.ok) return false;
+      const payload = await response.json().catch(() => null);
+      if (!payload || payload.ok !== true) return false;
+      return true;
+    } catch (_err) {
+      return false;
+    }
+  }
+
+  async function runAddonUpdateViaRelay() {
+    if (S.addonUpdateInstalling === true || S.addonUpdateChecking === true) return null;
+    const state = addonUpdateState();
+    const repoInput = document.getElementById('dash_addon_update_repo');
+    const localRootInput = document.getElementById('dash_addon_update_local_root');
+    const repository = addonUpdateRepositoryText(repoInput?.value || state.repository || ADDON_UPDATE_DEFAULT_REPOSITORY);
+    const parts = addonUpdateRepositoryParts(repository);
+    if (!parts) {
+      setAddonUpdateSettingsStatus(t('addon_update_repo_invalid'), 'danger');
+      return null;
+    }
+    const localRootPath = addonUpdateNormalizeLocalRootPath(localRootInput?.value || state.localRootPath || ADDON_UPDATE_DEFAULT_LOCAL_ROOT);
+    const releaseTag = clean(state.latestTag || '');
+    const includePrerelease = state.includePrerelease === true;
+    const noBackup = false;
+    if (!releaseTag) {
+      setAddonUpdateSettingsStatus(t('addon_update_status_release_missing'), 'warning');
+      return null;
+    }
+
+    S.addonUpdateInstalling = true;
+    syncAddonUpdateSettingsSection();
+    setAddonUpdateSettingsStatus(t('addon_update_bridge_status_running'), 'info');
+
+    try {
+      const health = await addonUpdateRelayHealthCheck();
+      if (!health) {
+        throw new Error(t('addon_update_bridge_status_missing'));
+      }
+
+      const response = await fetch(addonUpdateRelayUrl('v1/update'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          repository: parts.repository,
+          releaseTag,
+          localRootPath,
+          includePrerelease,
+          noBackup,
+        }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload || payload.ok !== true) {
+        const msg = clean(payload && payload.error ? payload.error : '') || `${response.status} ${response.statusText}`.trim();
+        throw new Error(msg || t('focus_unknown_error'));
+      }
+
+      await refreshAddonInstalledVersionFromFile();
+      const next = saveAddonUpdateState({
+        repository: parts.repository,
+        localRootPath,
+        checkedAt: new Date().toISOString(),
+        localInstalledTag: clean(payload.installedTag || releaseTag),
+        localInstalledVersion: addonUpdateVersionFromTag(clean(payload.installedTag || releaseTag)),
+        lastError: '',
+        lastStatus: t('addon_update_bridge_status_success'),
+        lastStatusLevel: 'success',
+      });
+      syncAddonUpdateCommandFields(next);
+      syncAddonUpdateVersionSummary(next);
+      syncStatNerdAboutInfoBlock(next);
+      syncAddonUpdateSettingsSection();
+      return payload;
+    } catch (error) {
+      const message = clean(error && error.message ? error.message : String(error)) || t('focus_unknown_error');
+      const next = saveAddonUpdateState({
+        repository: parts.repository,
+        localRootPath,
+        checkedAt: new Date().toISOString(),
+        lastError: message,
+        lastStatus: t('addon_update_bridge_status_error', { msg: message }),
+        lastStatusLevel: 'danger',
+      });
+      syncAddonUpdateCommandFields(next);
+      syncAddonUpdateVersionSummary(next);
+      syncAddonUpdateSettingsSection();
+      return null;
+    } finally {
+      S.addonUpdateInstalling = false;
+      syncAddonUpdateSettingsSection();
+    }
+  }
+
   function addonUpdatePickReleaseAsset(assetsInput = null) {
     const assets = Array.isArray(assetsInput) ? assetsInput : [];
     if (!assets.length) return null;
@@ -9335,13 +9456,15 @@
   }
 
   function syncAddonUpdateSettingsSection() {
-    const busy = S.addonUpdateChecking === true;
+    const busy = S.addonUpdateChecking === true || S.addonUpdateInstalling === true;
     const ids = [
       'dash_addon_update_repo',
       'dash_addon_update_local_root',
       'dash_addon_update_local_root_browse',
       'dash_addon_update_check_stable',
       'dash_addon_update_check_prerelease',
+      'dash_addon_update_run_bridge',
+      'dash_addon_update_test_bridge',
       'dash_addon_update_copy_ps',
       'dash_addon_update_copy_sh',
     ];
@@ -9350,7 +9473,10 @@
       if (el) el.disabled = busy;
     });
     if (busy) {
-      setAddonUpdateSettingsStatus(t('addon_update_status_checking'), 'info');
+      setAddonUpdateSettingsStatus(
+        S.addonUpdateInstalling === true ? t('addon_update_bridge_status_running') : t('addon_update_status_checking'),
+        'info'
+      );
       return;
     }
 
@@ -11629,6 +11755,8 @@
         <div class="form-group col-md-5 mb-2 d-flex flex-wrap justify-content-md-end align-items-end">
           <button id="dash_addon_update_check_stable" type="button" class="btn btn-outline-info btn-sm mr-2 mb-1">${t('addon_update_check_stable_btn')}</button>
           <button id="dash_addon_update_check_prerelease" type="button" class="btn btn-outline-warning btn-sm mr-2 mb-1">${t('addon_update_check_prerelease_btn')}</button>
+          <button id="dash_addon_update_test_bridge" type="button" class="btn btn-outline-secondary btn-sm mr-2 mb-1">${t('addon_update_bridge_test_btn')}</button>
+          <button id="dash_addon_update_run_bridge" type="button" class="btn btn-success btn-sm mr-2 mb-1">${t('addon_update_run_bridge_btn')}</button>
           <a id="dash_addon_update_open_release" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm d-none">${t('addon_update_open_release_btn')}</a>
         </div>
       </div>
@@ -11659,6 +11787,7 @@
         </div>
       </div>
       <div class="small text-muted">${t('addon_update_cmd_hint')}</div>
+      <div class="small text-muted mt-1">${t('addon_update_bridge_hint')}</div>
       <div id="dash_addon_update_versions" class="small mt-2 text-muted"></div>
       <div id="dash_addon_update_status" class="small mt-2 text-muted"></div>
     `;
@@ -11731,6 +11860,13 @@
     });
     section.querySelector('#dash_addon_update_check_prerelease')?.addEventListener('click', async () => {
       await runAddonUpdateVersionCheck({ includePrerelease: true });
+    });
+    section.querySelector('#dash_addon_update_test_bridge')?.addEventListener('click', async () => {
+      const ok = await addonUpdateRelayHealthCheck();
+      setAddonUpdateSettingsStatus(ok ? t('addon_update_bridge_status_ready') : t('addon_update_bridge_status_missing'), ok ? 'success' : 'warning');
+    });
+    section.querySelector('#dash_addon_update_run_bridge')?.addEventListener('click', async () => {
+      await runAddonUpdateViaRelay();
     });
     section.querySelector('#dash_addon_update_copy_ps')?.addEventListener('click', async () => {
       await copyAddonUpdateCommandFromField('dash_addon_update_cmd_ps');

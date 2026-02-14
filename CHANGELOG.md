@@ -8,6 +8,21 @@ The format follows Keep a Changelog and semantic versioning.
 
 - No entries yet.
 
+## [1.2.1-alpha.12] - 2026-02-14
+
+### Added
+- Desktop update relay app source (`desktop/relay`) for Windows/macOS:
+  - local HTTP endpoint (`127.0.0.1:17863`)
+  - executes existing update scripts automatically
+  - one-click update flow from addon settings (no terminal command copy/paste)
+- New update settings actions:
+  - `Tester l’app desktop`
+  - `Mettre à jour automatiquement`
+
+### Changed
+- Documentation links updated to include desktop relay app docs.
+- Update settings now show dedicated relay status messages and disable controls while install is running.
+
 ## [1.2.1-alpha.11] - 2026-02-14
 
 ### Changed

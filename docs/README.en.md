@@ -18,4 +18,5 @@ Main capabilities:
 - Release guide: `RELEASING.en.md`
 - Beginner guide: `NOOB_GUIDE.en.md`
 - Addon pack: `../addon/README.en.md`
+- Desktop update relay app: `../desktop/relay/README.md`
 - French version: `README.fr.md`
