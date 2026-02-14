@@ -9,9 +9,10 @@ TAG=""
 CONFIG_PATH=""
 NO_BACKUP="${NO_BACKUP:-0}"
 ALLOW_PRERELEASE=0
+ALLOW_DOWNGRADE=0
 
 usage() {
-	echo "Usage: ./update-from-github.sh [--repository owner/repo] [--tag vX.Y.Z] [--config /path/to/grocy/config] [--no-backup] [--allow-prerelease]" >&2
+	echo "Usage: ./update-from-github.sh [--repository owner/repo] [--tag vX.Y.Z] [--config /path/to/grocy/config] [--no-backup] [--allow-prerelease] [--allow-downgrade]" >&2
 }
 
 while [ $# -gt 0 ]; do
@@ -46,6 +47,10 @@ while [ $# -gt 0 ]; do
 			;;
 		--allow-prerelease)
 			ALLOW_PRERELEASE=1
+			shift
+			;;
+		--allow-downgrade)
+			ALLOW_DOWNGRADE=1
 			shift
 			;;
 		-h|--help)
@@ -226,6 +231,85 @@ IFS="$(printf '\t')" read -r RELEASE_TAG RELEASE_URL ASSET_NAME ASSET_URL < "$ME
 if [ -z "$ASSET_NAME" ] || [ -z "$ASSET_URL" ]; then
 	echo "ERROR: no ZIP asset found in release '$RELEASE_TAG'." >&2
 	exit 1
+fi
+
+if [ "$ALLOW_DOWNGRADE" != "1" ] && [ -f "$STATE_FILE" ]; then
+	set +e
+	python3 - "$STATE_FILE" "$RELEASE_TAG" <<'PY'
+import json
+import re
+import sys
+
+def parse_tag(tag: str):
+    text = (tag or "").strip()
+    if text.startswith("v"):
+        text = text[1:]
+    m = re.match(r"^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$", text)
+    if not m:
+        return None
+    return (int(m.group(1)), int(m.group(2)), int(m.group(3)), m.group(4) or "")
+
+def cmp_pre(a: str, b: str) -> int:
+    if not a and not b:
+        return 0
+    if not a:
+        return 1
+    if not b:
+        return -1
+    a_parts = [p for p in re.split(r"[.-]", a) if p]
+    b_parts = [p for p in re.split(r"[.-]", b) if p]
+    max_len = max(len(a_parts), len(b_parts))
+    for i in range(max_len):
+        if i >= len(a_parts):
+            return -1
+        if i >= len(b_parts):
+            return 1
+        ai = a_parts[i]
+        bi = b_parts[i]
+        ai_num = ai.isdigit()
+        bi_num = bi.isdigit()
+        if ai_num and bi_num:
+            av = int(ai)
+            bv = int(bi)
+            if av != bv:
+                return -1 if av < bv else 1
+            continue
+        if ai_num and not bi_num:
+            return -1
+        if not ai_num and bi_num:
+            return 1
+        if ai.lower() != bi.lower():
+            return -1 if ai.lower() < bi.lower() else 1
+    return 0
+
+def cmp_tag(left: str, right: str) -> int:
+    l = parse_tag(left)
+    r = parse_tag(right)
+    if not l or not r:
+        return 0
+    if l[0] != r[0]:
+        return -1 if l[0] < r[0] else 1
+    if l[1] != r[1]:
+        return -1 if l[1] < r[1] else 1
+    if l[2] != r[2]:
+        return -1 if l[2] < r[2] else 1
+    return cmp_pre(l[3], r[3])
+
+with open(sys.argv[1], encoding="utf-8") as f:
+    payload = json.load(f)
+current = str(payload.get("release_tag") or "").strip()
+target = str(sys.argv[2] or "").strip()
+if current:
+    if cmp_tag(target, current) < 0:
+        print(f"Refusing downgrade from {current} to {target}. Use --allow-downgrade to force.", file=sys.stderr)
+        sys.exit(3)
+sys.exit(0)
+PY
+	code="$?"
+	set -e
+	if [ "$code" -ne 0 ]; then
+		exit "$code"
+	fi
 fi
 
 ARCHIVE_FILE="$TMP_DIR/$ASSET_NAME"

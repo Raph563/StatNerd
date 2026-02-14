@@ -8,6 +8,14 @@ The format follows Keep a Changelog and semantic versioning.
 
 - No entries yet.
 
+## [1.2.1-alpha.18] - 2026-02-14
+
+### Fixed
+- Relay install flow now resolves displayed local version using the requested tag when relay payload reports an older/stale tag, preventing UI from staying stuck on older alpha labels after install.
+- Added downgrade protection in update scripts:
+  - PowerShell: `addon/scripts/update-from-github.ps1` now refuses downgrade by default (override with `-AllowDowngrade`).
+  - Shell: `addon/scripts/update-from-github.sh` now refuses downgrade by default (override with `--allow-downgrade`).
+
 ## [1.2.1-alpha.17] - 2026-02-14
 
 ### Fixed

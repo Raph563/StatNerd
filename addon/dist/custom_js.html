@@ -8138,17 +8138,24 @@
         throw new Error(msg || t('focus_unknown_error'));
       }
 
-      await refreshAddonInstalledVersionFromFile();
+      const requestedTag = clean(releaseTag || '');
+      const installedTagFromRelay = clean(payload.installedTag || '');
+      let resolvedInstalledTag = installedTagFromRelay || requestedTag;
+      if (requestedTag && compareAddonSemver(resolvedInstalledTag, requestedTag) < 0) {
+        // Never display an older version than the one the user just requested to install.
+        resolvedInstalledTag = requestedTag;
+      }
       const next = saveAddonUpdateState({
         repository: parts.repository,
         localRootPath,
         checkedAt: new Date().toISOString(),
-        localInstalledTag: clean(payload.installedTag || releaseTag),
-        localInstalledVersion: addonUpdateVersionFromTag(clean(payload.installedTag || releaseTag)),
+        localInstalledTag: resolvedInstalledTag,
+        localInstalledVersion: addonUpdateVersionFromTag(resolvedInstalledTag),
         lastError: '',
         lastStatus: t('addon_update_bridge_status_success'),
         lastStatusLevel: 'success',
       });
+      await refreshAddonInstalledVersionFromFile();
       syncAddonUpdateCommandFields(next);
       syncAddonUpdateVersionSummary(next);
       syncStatNerdAboutInfoBlock(next);

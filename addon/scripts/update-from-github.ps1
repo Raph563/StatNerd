@@ -3,7 +3,8 @@ param(
 	[string]$ReleaseTag = '',
 	[string]$GrocyConfigPath = '',
 	[switch]$NoBackup,
-	[switch]$AllowPrerelease
+	[switch]$AllowPrerelease,
+	[switch]$AllowDowngrade
 )
 
 $ErrorActionPreference = 'Stop'
@@ -123,6 +124,104 @@ function Get-ReleasePayload {
 	}
 }
 
+function Get-InstalledReleaseTag {
+	param([string]$StateFilePath)
+	if (-not (Test-Path $StateFilePath))
+	{
+		return ''
+	}
+	try
+	{
+		$payload = Get-Content -Path $StateFilePath -Raw | ConvertFrom-Json
+		$tag = [string]($payload.release_tag)
+		$tag = $tag.Trim()
+		if ([string]::IsNullOrWhiteSpace($tag))
+		{
+			return ''
+		}
+		if ($tag -notmatch '^v')
+		{
+			$tag = "v$tag"
+		}
+		return $tag
+	}
+	catch
+	{
+		return ''
+	}
+}
+
+function Parse-AddonTag {
+	param([string]$TagInput)
+	$tag = [string]$TagInput
+	$tag = $tag.Trim()
+	$tag = $tag -replace '^v', ''
+	$match = [regex]::Match($tag, '^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$')
+	if (-not $match.Success)
+	{
+		return $null
+	}
+	return [ordered]@{
+		major = [int]$match.Groups[1].Value
+		minor = [int]$match.Groups[2].Value
+		patch = [int]$match.Groups[3].Value
+		pre = [string]$match.Groups[4].Value
+	}
+}
+
+function Compare-Prerelease {
+	param(
+		[string]$LeftPre,
+		[string]$RightPre
+	)
+	$l = [string]$LeftPre
+	$r = [string]$RightPre
+	if ([string]::IsNullOrWhiteSpace($l) -and [string]::IsNullOrWhiteSpace($r)) { return 0 }
+	if ([string]::IsNullOrWhiteSpace($l)) { return 1 }
+	if ([string]::IsNullOrWhiteSpace($r)) { return -1 }
+
+	$lParts = $l.Split(@('.', '-'), [System.StringSplitOptions]::RemoveEmptyEntries)
+	$rParts = $r.Split(@('.', '-'), [System.StringSplitOptions]::RemoveEmptyEntries)
+	$max = [Math]::Max($lParts.Count, $rParts.Count)
+	for ($i = 0; $i -lt $max; $i++)
+	{
+		if ($i -ge $lParts.Count) { return -1 }
+		if ($i -ge $rParts.Count) { return 1 }
+		$li = [string]$lParts[$i]
+		$ri = [string]$rParts[$i]
+		$lNum = 0
+		$rNum = 0
+		$lIsNum = [int]::TryParse($li, [ref]$lNum)
+		$rIsNum = [int]::TryParse($ri, [ref]$rNum)
+		if ($lIsNum -and $rIsNum)
+		{
+			if ($lNum -lt $rNum) { return -1 }
+			if ($lNum -gt $rNum) { return 1 }
+			continue
+		}
+		if ($lIsNum -and -not $rIsNum) { return -1 }
+		if (-not $lIsNum -and $rIsNum) { return 1 }
+		$cmp = [string]::Compare($li, $ri, $true)
+		if ($cmp -lt 0) { return -1 }
+		if ($cmp -gt 0) { return 1 }
+	}
+	return 0
+}
+
+function Compare-AddonTag {
+	param(
+		[string]$LeftTag,
+		[string]$RightTag
+	)
+	$l = Parse-AddonTag -TagInput $LeftTag
+	$r = Parse-AddonTag -TagInput $RightTag
+	if ($null -eq $l -or $null -eq $r) { return 0 }
+	if ($l.major -ne $r.major) { return $(if ($l.major -lt $r.major) { -1 } else { 1 }) }
+	if ($l.minor -ne $r.minor) { return $(if ($l.minor -lt $r.minor) { -1 } else { 1 }) }
+	if ($l.patch -ne $r.patch) { return $(if ($l.patch -lt $r.patch) { -1 } else { 1 }) }
+	return Compare-Prerelease -LeftPre $l.pre -RightPre $r.pre
+}
+
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $grocyConfigResolved = Resolve-GrocyConfigPath -ConfigPathInput $GrocyConfigPath -ScriptDir $scriptDir
 $dataDir = Join-Path $grocyConfigResolved 'data'
@@ -146,6 +245,16 @@ try
 	if (-not $release)
 	{
 		throw 'No GitHub release found.'
+	}
+	$requestedTag = [string]$release.tag_name
+	$currentTag = Get-InstalledReleaseTag -StateFilePath $stateFile
+	if (-not $AllowDowngrade -and -not [string]::IsNullOrWhiteSpace($currentTag))
+	{
+		$cmp = Compare-AddonTag -LeftTag $requestedTag -RightTag $currentTag
+		if ($cmp -lt 0)
+		{
+			throw "Refusing downgrade from $currentTag to $requestedTag. Use -AllowDowngrade to force."
+		}
 	}
 
 	$assets = @($release.assets)
