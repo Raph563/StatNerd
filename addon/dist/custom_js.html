@@ -5996,15 +5996,17 @@
       #dash_chart_overlay .dash-focus-bucket-product-btn {
         width: 100%;
         margin: 0;
-        padding: 0.34rem 0.38rem;
+        padding: 0.28rem;
         border: 0;
         border-radius: 0.52rem;
         background: transparent;
         color: inherit;
         display: flex;
-        align-items: center;
-        gap: 0.44rem;
-        text-align: left;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+        gap: 0.24rem;
+        text-align: center;
       }
       #dash_chart_overlay .dash-focus-bucket-product-btn:hover,
       #dash_chart_overlay .dash-focus-bucket-product-btn:focus {
@@ -6022,8 +6024,8 @@
         cursor: default;
       }
       #dash_chart_overlay .dash-focus-bucket-thumb {
-        width: 2.4rem;
-        height: 2.4rem;
+        width: 100%;
+        height: 4.2rem;
         border-radius: 0.46rem;
         border: 1px solid rgba(255,255,255,0.28);
         overflow: hidden;
@@ -6036,7 +6038,7 @@
       #dash_chart_overlay .dash-focus-bucket-thumb img {
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: contain;
         display: block;
       }
       #dash_chart_overlay .dash-focus-bucket-thumb-fallback {
@@ -6047,28 +6049,24 @@
       }
       #dash_chart_overlay .dash-focus-bucket-main {
         min-width: 0;
-        flex: 1;
+        flex: 0 0 auto;
         display: flex;
         flex-direction: column;
-        gap: 0.08rem;
+        gap: 0;
+        border-top: 1px solid rgba(255,255,255,0.1);
+        padding-top: 0.2rem;
       }
       #dash_chart_overlay .dash-focus-bucket-name {
         display: block;
         font-weight: 600;
-        font-size: 0.8rem;
+        font-size: 0.68rem;
         line-height: 1.2;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
       }
       #dash_chart_overlay .dash-focus-bucket-meta {
-        display: block;
-        font-size: 0.72rem;
-        line-height: 1.15;
-        color: rgba(198,214,236,0.86);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        display: none;
       }
       #dash_chart_overlay .dash-focus-bucket-item.has-expand::before {
         content: '';
@@ -20295,7 +20293,6 @@
       const selectedClass = isSelected ? ' is-selected' : '';
       const primaryClass = idx === 0 ? ' is-primary' : '';
       const expandClass = '';
-      const metaText = focusBucketItemMetaText(row);
       const delayMs = Math.min(420, idx * 65);
       const showMoreButton = '';
       const seeMoreButton = '';
@@ -20312,7 +20309,6 @@
             ${focusBucketThumbHtml(row)}
             <span class="dash-focus-bucket-main">
               <span class="dash-focus-bucket-name">${escapeHtml(name)}</span>
-              ${metaText ? `<span class="dash-focus-bucket-meta">${escapeHtml(metaText)}</span>` : ''}
             </span>
           </button>
           ${seeMoreButton}

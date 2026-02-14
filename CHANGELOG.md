@@ -8,6 +8,13 @@ The format follows Keep a Changelog and semantic versioning.
 
 - No entries yet.
 
+## [1.2.1-alpha.11] - 2026-02-14
+
+### Changed
+- Local product cards (left list under group image) now use a minimal visual card style matching the group card: image-first card with a small product name at the bottom.
+- Removed extra product meta text inside left cards so detailed information is shown only on the right info panel.
+- Product thumbnails in local cards now use `contain` rendering for cleaner packaging/logo visibility.
+
 ## [1.2.1-alpha.10] - 2026-02-14
 
 ### Fixed
