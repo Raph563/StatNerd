@@ -1,6 +1,6 @@
-# Donne Atlas - Pack Addon (FR)
+# StatNerd - Pack Addon (FR)
 
-Ce dossier contient le pack de distribution de Donne Atlas.
+Ce dossier contient le pack de distribution de StatNerd.
 
 ## Contenu
 

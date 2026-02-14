@@ -1,4 +1,4 @@
-# Donne Atlas Addon Pack
+# StatNerd Addon Pack
 
 Français:
 

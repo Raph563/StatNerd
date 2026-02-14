@@ -1,6 +1,6 @@
-# Donne Atlas - Documentation (FR)
+# StatNerd - Documentation (FR)
 
-Donne Atlas est un addon avancé pour Grocy.
+StatNerd est un addon avancé pour Grocy.
 
 Fonctionnalités principales:
 

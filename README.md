@@ -1,4 +1,4 @@
-# Donne Atlas
+# StatNerd
 
 Addon avancé pour Grocy avec analytics, compatibilité assistée, IA multi-provider et releases GitHub automatisées.
 

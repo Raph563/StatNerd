@@ -149,6 +149,8 @@
     addonCompatMappingResolve: null,
     addonUpdateState: null,
     addonUpdateChecking: false,
+    addonUpdateReleaseChoices: [],
+    addonUpdateLocalVersionPromise: null,
   };
 
   const CHART_IDS = [
@@ -715,10 +717,11 @@
   const ADDON_UPDATE_KEY = 'grocy_dash_addon_update_v1';
   const ADDON_RUNTIME_VERSION = '1.2.1';
   const ADDON_UPDATE_DEFAULT_REPOSITORY = 'Raph563/Grocy';
-  const DONNE_AUTHOR_NAME = 'Raph563';
-  const DONNE_REPO_URL = 'https://github.com/Raph563/Grocy';
-  const DONNE_CHANGELOG_URL = `${DONNE_REPO_URL}/blob/main/CHANGELOG.md`;
-  const DONNE_DOCS_URL = `${DONNE_REPO_URL}/tree/main/docs`;
+  const ADDON_UPDATE_DEFAULT_LOCAL_ROOT = 'C:\\Users\\Admin\\Documents\\Docker\\grocy';
+  const STATNERD_AUTHOR_NAME = 'Raph563';
+  const STATNERD_REPO_URL = 'https://github.com/Raph563/Grocy';
+  const STATNERD_CHANGELOG_URL = `${STATNERD_REPO_URL}/blob/main/CHANGELOG.md`;
+  const STATNERD_DOCS_URL = `${STATNERD_REPO_URL}/tree/main/docs`;
   const BARCODE_LOOKUP_PROVIDER_IDS = ['openfoodfacts', 'openproductsfacts'];
   const PHOTO_SEARCH_ENGINE_IDS = ['google', 'duckduckgo', 'bing'];
   const BRAND_LOGO_SOURCES = [
@@ -1436,7 +1439,7 @@
       overlay_focus_ai_settings_btn: 'Paramètres IA',
       overlay_focus_bucket_see_more: 'Voir plus',
       overlay_focus_bucket_show_more: 'Afficher plus',
-      ai_settings_title: 'Paramètres généraux de la donne',
+      ai_settings_title: 'Paramètres généraux de StatNerd',
       ai_settings_close: 'Fermer',
       ai_enable_focus: 'Activer l’agent IA sur le focus plein écran',
       ai_provider_active: 'Fournisseur actif',
@@ -1473,7 +1476,7 @@
       settings_group_general: 'Réglages généraux',
       settings_group_product_data: 'Services produit',
       settings_group_visuals: 'Identité visuelle',
-      settings_group_compat: 'Compatibilité donne',
+      settings_group_compat: 'Compatibilité StatNerd',
       settings_group_providers: 'Fournisseurs IA',
       settings_group_update: 'Mises à jour & infos',
       settings_group_reduce: '(réduire)',
@@ -1503,35 +1506,45 @@
       addon_compat_mapping_apply: 'Valider',
       addon_compat_mapping_create: 'Créer "{{name}}"',
       addon_compat_mapping_similarity: '{{score}} % similaire',
-      settings_section_addon_update: 'Mise à jour addon',
-      addon_update_desc: 'Vérifie la dernière release GitHub et prépare les commandes de mise à jour locale.',
+      settings_section_addon_update: 'Mise à jour StatNerd',
+      addon_update_desc: 'Vérifie les releases GitHub, permet de choisir une version, puis prépare la commande de mise à jour locale.',
       addon_update_repo_label: 'Dépôt GitHub (owner/repo)',
       addon_update_repo_hint: 'Ex: Raph563/Grocy.',
-      addon_update_include_prerelease_label: 'Inclure versions Alpha/Beta',
-      addon_update_include_prerelease_hint: 'Active la détection et l’installation des prereleases (alpha/beta).',
-      addon_update_check_btn: 'Vérifier la version',
+      addon_update_local_root_label: 'Dossier racine Grocy local',
+      addon_update_local_root_hint: 'Ex: C:\\Users\\Admin\\Documents\\Docker\\grocy (contient addon/ et config/).',
+      addon_update_local_root_browse_btn: 'Parcourir',
+      addon_update_local_root_pick_fail: 'Sélection impossible depuis ce navigateur. Renseigne le dossier manuellement.',
+      addon_update_check_stable_btn: 'Vérifier stable',
+      addon_update_check_prerelease_btn: 'Vérifier alpha/bêta',
       addon_update_open_release_btn: 'Ouvrir la release',
       addon_update_open_release_tag: 'Release {{tag}}',
       addon_update_copy_btn: 'Copier',
       addon_update_cmd_ps_label: 'Commande Windows PowerShell',
       addon_update_cmd_sh_label: 'Commande Linux/macOS',
-      addon_update_cmd_hint: 'Les scripts update-from-github téléchargent la release et remplacent config/data/custom_js.html (backup auto). Si Alpha/Beta est actif, la commande inclut aussi les prereleases.',
-      donne_about_title: 'Infos donne',
-      donne_about_author: 'Auteur: {{author}}',
-      donne_about_version: 'Version addon locale: {{version}}',
-      donne_about_release_link: 'Releases GitHub',
-      donne_about_changelog_link: 'Changelog',
-      donne_about_docs_link: 'Documentation',
-      addon_update_versions_line: 'Version locale: {{local}} | Dernière release: {{remote}} (tag {{tag}}).',
+      addon_update_cmd_hint: 'One-liner PowerShell: Set-Location vers addon/scripts puis update-from-github avec le dossier config. Sélectionne une version pour injecter automatiquement le tag.',
+      addon_update_release_list_label: 'Choisir une version à installer',
+      addon_update_release_list_empty: 'Aucune version chargée. Lance une vérification.',
+      addon_update_release_badge_prerelease: 'alpha/bêta',
+      addon_update_release_selected: 'Version sélectionnée: {{tag}}',
+      addon_update_changelog_label: 'Changelog de la version sélectionnée',
+      addon_update_changelog_empty: 'Aucun changelog disponible pour cette version.',
+      statnerd_about_title: 'Infos StatNerd',
+      statnerd_about_author: 'Auteur: {{author}}',
+      statnerd_about_version: 'Version locale installée: {{version}}',
+      statnerd_about_release_link: 'Releases GitHub',
+      statnerd_about_changelog_link: 'Changelog global',
+      statnerd_about_docs_link: 'Documentation',
+      statnerd_about_selected_changelog: 'Changelog de la version sélectionnée',
+      addon_update_versions_line: 'Version locale: {{local}} | Version sélectionnée: {{remote}} (tag {{tag}}).',
       addon_update_last_checked: 'Dernière vérification: {{date}}.',
       addon_update_not_checked: 'Aucune vérification encore.',
       addon_update_version_unknown: 'inconnue',
       addon_update_repo_invalid: 'Format dépôt invalide (attendu: owner/repo).',
-      addon_update_status_idle: 'Clique sur "Vérifier la version" pour comparer avec GitHub.',
+      addon_update_status_idle: 'Lance une vérification stable ou alpha/bêta pour charger les versions.',
       addon_update_status_checking: 'Vérification GitHub en cours...',
-      addon_update_status_up_to_date: 'Addon à jour: version {{version}}.',
+      addon_update_status_up_to_date: 'StatNerd est à jour: version {{version}}.',
       addon_update_status_update_available: 'Mise à jour disponible: local {{local}} -> {{latest}} ({{tag}}).',
-      addon_update_status_local_ahead: 'Version locale plus récente que la release: local {{local}} / release {{latest}}.',
+      addon_update_status_local_ahead: 'Version locale plus récente que la release choisie: local {{local}} / release {{latest}}.',
       addon_update_status_release_missing: 'Aucune release trouvée sur GitHub.',
       addon_update_status_release_missing_asset: 'Release {{tag}} détectée mais aucun asset ZIP exploitable.',
       addon_update_status_error: 'Échec vérification mise à jour: {{msg}}',
@@ -1568,8 +1581,8 @@
       provider_link_keys: 'Clés API',
       provider_link_download: 'Téléchargement',
       provider_link_selfhosted: 'Self-hosted',
-      ai_settings_btn_title_configured: 'Paramètres de la donne (IA: {{provider}} configuré)',
-      ai_settings_btn_title_not_configured: 'Paramètres de la donne (IA: {{provider}} non configuré)',
+      ai_settings_btn_title_configured: 'Paramètres de StatNerd (IA: {{provider}} configuré)',
+      ai_settings_btn_title_not_configured: 'Paramètres de StatNerd (IA: {{provider}} non configuré)',
       ai_mode_goal_perf: 'la réactivité',
       ai_mode_goal_eco: 'l’équilibre coût/perf',
       ai_mode_goal_cheapest: 'le coût minimal',
@@ -2053,7 +2066,7 @@
       overlay_focus_ai_settings_btn: 'AI settings',
       overlay_focus_bucket_see_more: 'See more',
       overlay_focus_bucket_show_more: 'Show more',
-      ai_settings_title: 'Donne general settings',
+      ai_settings_title: 'StatNerd general settings',
       ai_settings_close: 'Close',
       ai_enable_focus: 'Enable AI agent on fullscreen focus',
       ai_provider_active: 'Active provider',
@@ -2090,7 +2103,7 @@
       settings_group_general: 'General settings',
       settings_group_product_data: 'Product services',
       settings_group_visuals: 'Visual identity',
-      settings_group_compat: 'Donne compatibility',
+      settings_group_compat: 'StatNerd compatibility',
       settings_group_providers: 'AI providers',
       settings_group_update: 'Updates & info',
       settings_group_reduce: '(collapse)',
@@ -2120,35 +2133,45 @@
       addon_compat_mapping_apply: 'Apply',
       addon_compat_mapping_create: 'Create \"{{name}}\"',
       addon_compat_mapping_similarity: '{{score}}% match',
-      settings_section_addon_update: 'Addon update',
-      addon_update_desc: 'Checks latest GitHub release and prepares local update commands.',
+      settings_section_addon_update: 'StatNerd update',
+      addon_update_desc: 'Checks GitHub releases, lets you choose a version, then prepares local update commands.',
       addon_update_repo_label: 'GitHub repository (owner/repo)',
       addon_update_repo_hint: 'Example: Raph563/Grocy.',
-      addon_update_include_prerelease_label: 'Include Alpha/Beta versions',
-      addon_update_include_prerelease_hint: 'Enable prerelease (alpha/beta) detection and installation.',
-      addon_update_check_btn: 'Check version',
+      addon_update_local_root_label: 'Local Grocy root folder',
+      addon_update_local_root_hint: 'Example: C:\\Users\\Admin\\Documents\\Docker\\grocy (contains addon/ and config/).',
+      addon_update_local_root_browse_btn: 'Browse',
+      addon_update_local_root_pick_fail: 'Folder selection is unavailable in this browser. Enter the path manually.',
+      addon_update_check_stable_btn: 'Check stable',
+      addon_update_check_prerelease_btn: 'Check alpha/beta',
       addon_update_open_release_btn: 'Open release',
       addon_update_open_release_tag: 'Release {{tag}}',
       addon_update_copy_btn: 'Copy',
       addon_update_cmd_ps_label: 'Windows PowerShell command',
       addon_update_cmd_sh_label: 'Linux/macOS command',
-      addon_update_cmd_hint: 'update-from-github scripts download release and replace config/data/custom_js.html (auto backup). When Alpha/Beta is enabled, command also allows prereleases.',
-      donne_about_title: 'Donne info',
-      donne_about_author: 'Author: {{author}}',
-      donne_about_version: 'Local addon version: {{version}}',
-      donne_about_release_link: 'GitHub releases',
-      donne_about_changelog_link: 'Changelog',
-      donne_about_docs_link: 'Documentation',
-      addon_update_versions_line: 'Local version: {{local}} | Latest release: {{remote}} (tag {{tag}}).',
+      addon_update_cmd_hint: 'PowerShell one-liner: Set-Location to addon/scripts then run update-from-github with config path. Selecting a version auto-injects the tag.',
+      addon_update_release_list_label: 'Choose a version to install',
+      addon_update_release_list_empty: 'No versions loaded yet. Run a check first.',
+      addon_update_release_badge_prerelease: 'alpha/beta',
+      addon_update_release_selected: 'Selected version: {{tag}}',
+      addon_update_changelog_label: 'Selected version changelog',
+      addon_update_changelog_empty: 'No changelog available for this release.',
+      statnerd_about_title: 'StatNerd info',
+      statnerd_about_author: 'Author: {{author}}',
+      statnerd_about_version: 'Installed local version: {{version}}',
+      statnerd_about_release_link: 'GitHub releases',
+      statnerd_about_changelog_link: 'Global changelog',
+      statnerd_about_docs_link: 'Documentation',
+      statnerd_about_selected_changelog: 'Selected version changelog',
+      addon_update_versions_line: 'Local version: {{local}} | Selected release: {{remote}} (tag {{tag}}).',
       addon_update_last_checked: 'Last check: {{date}}.',
       addon_update_not_checked: 'Not checked yet.',
       addon_update_version_unknown: 'unknown',
       addon_update_repo_invalid: 'Invalid repository format (expected: owner/repo).',
-      addon_update_status_idle: 'Click "Check version" to compare with GitHub.',
-      addon_update_status_checking: 'Checking GitHub release...',
-      addon_update_status_up_to_date: 'Addon is up to date: version {{version}}.',
+      addon_update_status_idle: 'Run a stable or alpha/beta check to load versions.',
+      addon_update_status_checking: 'Checking GitHub releases...',
+      addon_update_status_up_to_date: 'StatNerd is up to date: version {{version}}.',
       addon_update_status_update_available: 'Update available: local {{local}} -> {{latest}} ({{tag}}).',
-      addon_update_status_local_ahead: 'Local addon is newer than release: local {{local}} / release {{latest}}.',
+      addon_update_status_local_ahead: 'Local version is newer than selected release: local {{local}} / release {{latest}}.',
       addon_update_status_release_missing: 'No GitHub release found.',
       addon_update_status_release_missing_asset: 'Release {{tag}} found but no usable ZIP asset.',
       addon_update_status_error: 'Update check failed: {{msg}}',
@@ -2185,8 +2208,8 @@
       provider_link_keys: 'API keys',
       provider_link_download: 'Download',
       provider_link_selfhosted: 'Self-hosted',
-      ai_settings_btn_title_configured: 'Donne settings (AI: {{provider}} configured)',
-      ai_settings_btn_title_not_configured: 'Donne settings (AI: {{provider}} not configured)',
+      ai_settings_btn_title_configured: 'StatNerd settings (AI: {{provider}} configured)',
+      ai_settings_btn_title_not_configured: 'StatNerd settings (AI: {{provider}} not configured)',
       ai_mode_goal_perf: 'responsiveness',
       ai_mode_goal_eco: 'cost/perf balance',
       ai_mode_goal_cheapest: 'minimum cost',
@@ -7200,6 +7223,22 @@
       #dash_ai_settings_overlay .dash-donne-group .dash-settings-section + .dash-settings-section {
         margin-top: 0.75rem !important;
       }
+      #dash_ai_settings_overlay #dash_addon_update_release_choices .btn {
+        text-align: left;
+      }
+      #dash_ai_settings_overlay .dash-addon-update-changelog {
+        border: 1px solid rgba(255,255,255,0.16);
+        border-radius: 0.42rem;
+        background: rgba(255,255,255,0.04);
+        color: rgba(228,236,245,0.98);
+        padding: 0.55rem;
+        max-height: 12rem;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-size: 0.78rem;
+        line-height: 1.35;
+      }
       #dash_ai_settings_overlay .custom-control.custom-switch {
         position: relative;
         display: flex;
@@ -7686,12 +7725,18 @@
     return {
       repository: ADDON_UPDATE_DEFAULT_REPOSITORY,
       includePrerelease: false,
+      localRootPath: ADDON_UPDATE_DEFAULT_LOCAL_ROOT,
+      localInstalledTag: '',
+      localInstalledVersion: '',
+      localInstalledAt: '',
       checkedAt: '',
       latestTag: '',
       latestVersion: '',
       releaseUrl: '',
       assetUrl: '',
       assetName: '',
+      selectedChangelog: '',
+      selectedPublishedAt: '',
       lastStatus: '',
       lastStatusLevel: 'muted',
       lastError: '',
@@ -7706,12 +7751,18 @@
     return {
       repository,
       includePrerelease: state.includePrerelease === true,
+      localRootPath: clean(state.localRootPath || ADDON_UPDATE_DEFAULT_LOCAL_ROOT),
+      localInstalledTag: clean(state.localInstalledTag || ''),
+      localInstalledVersion: clean(state.localInstalledVersion || ''),
+      localInstalledAt: clean(state.localInstalledAt || ''),
       checkedAt: clean(state.checkedAt || ''),
       latestTag: clean(state.latestTag || ''),
       latestVersion: clean(state.latestVersion || ''),
       releaseUrl: clean(state.releaseUrl || ''),
       assetUrl: clean(state.assetUrl || ''),
       assetName: clean(state.assetName || ''),
+      selectedChangelog: String(state.selectedChangelog || ''),
+      selectedPublishedAt: clean(state.selectedPublishedAt || ''),
       lastStatus: clean(state.lastStatus || ''),
       lastStatusLevel: normalizeAddonUpdateStatusLevel(state.lastStatusLevel || 'muted'),
       lastError: clean(state.lastError || ''),
@@ -7803,8 +7854,65 @@
     return parsed.toLocaleString();
   }
 
+  function addonUpdateNormalizeLocalRootPath(pathInput = '') {
+    const raw = String(pathInput || '').trim();
+    if (!raw) return '';
+    let value = raw.replace(/^["']+|["']+$/g, '');
+    value = value.replace(/[\\/]+$/g, '');
+    return value;
+  }
+
+  function addonUpdateBuildWindowsPaths(rootPathInput = '') {
+    const root = addonUpdateNormalizeLocalRootPath(rootPathInput || '');
+    if (!root) {
+      return {
+        root: '',
+        scriptsDir: 'addon\\scripts',
+        configDir: 'config',
+      };
+    }
+    const base = root.replace(/\//g, '\\');
+    return {
+      root: base,
+      scriptsDir: `${base}\\addon\\scripts`,
+      configDir: `${base}\\config`,
+    };
+  }
+
+  function addonUpdateBuildShellPaths(rootPathInput = '') {
+    const root = addonUpdateNormalizeLocalRootPath(rootPathInput || '');
+    if (!root) {
+      return {
+        root: '',
+        scriptsDir: 'addon/scripts',
+        configDir: 'config',
+      };
+    }
+    const base = root.replace(/\\/g, '/');
+    return {
+      root: base,
+      scriptsDir: `${base}/addon/scripts`,
+      configDir: `${base}/config`,
+    };
+  }
+
+  function addonUpdateLocalVersionValue(stateInput = null) {
+    const state = normalizeAddonUpdateState(stateInput || addonUpdateState());
+    const fromStateTag = clean(state.localInstalledTag || '');
+    if (fromStateTag) {
+      return addonUpdateVersionFromTag(fromStateTag);
+    }
+    const fromStateVersion = clean(state.localInstalledVersion || '');
+    if (fromStateVersion) return fromStateVersion;
+    return clean(ADDON_RUNTIME_VERSION || '') || t('addon_update_version_unknown');
+  }
+
   function addonUpdatePsQuote(valueInput = '') {
     return `'${String(valueInput || '').replace(/'/g, "''")}'`;
+  }
+
+  function addonUpdatePsDoubleQuote(valueInput = '') {
+    return `"${String(valueInput || '').replace(/`/g, '``').replace(/"/g, '`"')}"`;
   }
 
   function addonUpdateShQuote(valueInput = '') {
@@ -7816,7 +7924,8 @@
     const state = normalizeAddonUpdateState(stateInput || addonUpdateState());
     const repo = clean(state.repository || ADDON_UPDATE_DEFAULT_REPOSITORY);
     const tag = clean(state.latestTag || '');
-    let command = `cd addon\\scripts; .\\update-from-github.ps1 -Repository ${addonUpdatePsQuote(repo)}`;
+    const paths = addonUpdateBuildWindowsPaths(state.localRootPath || '');
+    let command = `Set-Location ${addonUpdatePsDoubleQuote(paths.scriptsDir)}; .\\update-from-github.ps1 -Repository ${addonUpdatePsQuote(repo)} -GrocyConfigPath ${addonUpdatePsDoubleQuote(paths.configDir)}`;
     if (state.includePrerelease === true) {
       command += ' -AllowPrerelease';
     }
@@ -7830,7 +7939,8 @@
     const state = normalizeAddonUpdateState(stateInput || addonUpdateState());
     const repo = clean(state.repository || ADDON_UPDATE_DEFAULT_REPOSITORY);
     const tag = clean(state.latestTag || '');
-    let command = `cd addon/scripts && ./update-from-github.sh --repository ${addonUpdateShQuote(repo)}`;
+    const paths = addonUpdateBuildShellPaths(state.localRootPath || '');
+    let command = `cd ${addonUpdateShQuote(paths.scriptsDir)} && ./update-from-github.sh --repository ${addonUpdateShQuote(repo)} --config ${addonUpdateShQuote(paths.configDir)}`;
     if (state.includePrerelease === true) {
       command += ' --allow-prerelease';
     }
@@ -7848,17 +7958,40 @@
       || null;
   }
 
-  async function fetchAddonLatestReleaseInfo(repositoryInput = '', optionsInput = {}) {
+  function addonUpdateReleasePayloadToInfo(payloadInput = null, repository = '') {
+    const payload = payloadInput && typeof payloadInput === 'object' ? payloadInput : null;
+    if (!payload) return null;
+    const tag = clean(payload && payload.tag_name ? payload.tag_name : '');
+    if (!tag) return null;
+    const version = addonUpdateVersionFromTag(tag);
+    const releaseUrl = clean(payload && payload.html_url ? payload.html_url : '');
+    const publishedAt = clean(payload && payload.published_at ? payload.published_at : '');
+    const changelog = String(payload && payload.body ? payload.body : '');
+    const prerelease = payload && payload.prerelease === true;
+    const asset = addonUpdatePickReleaseAsset(payload && payload.assets);
+    return {
+      repository,
+      tag,
+      version,
+      releaseUrl,
+      assetName: clean(asset && asset.name ? asset.name : ''),
+      assetUrl: clean(asset && asset.browser_download_url ? asset.browser_download_url : ''),
+      prerelease,
+      publishedAt,
+      changelog,
+    };
+  }
+
+  async function fetchAddonReleaseList(repositoryInput = '', optionsInput = {}) {
     const options = optionsInput && typeof optionsInput === 'object' ? optionsInput : {};
     const includePrerelease = options.includePrerelease === true;
+    const limit = clamp(Math.floor(num(options.limit || '20')), 1, 50);
     const repo = addonUpdateRepositoryParts(repositoryInput || '');
     if (!repo) {
       throw new Error(t('addon_update_repo_invalid'));
     }
 
-    const endpoint = includePrerelease
-      ? `https://api.github.com/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.name)}/releases?per_page=20`
-      : `https://api.github.com/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.name)}/releases/latest`;
+    const endpoint = `https://api.github.com/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.name)}/releases?per_page=${limit}`;
     let response = null;
     try {
       response = await fetch(endpoint, {
@@ -7886,29 +8019,85 @@
     }
 
     const rawPayload = await response.json();
-    const payload = includePrerelease
-      ? (Array.isArray(rawPayload)
-        ? (rawPayload.find((row) => row && row.draft !== true && clean(row.tag_name || '')) || null)
-        : null)
-      : rawPayload;
-
-    if (!payload) {
+    const rows = Array.isArray(rawPayload) ? rawPayload : [];
+    const filtered = rows.filter((row) => {
+      if (!row || row.draft === true) return false;
+      const tag = clean(row.tag_name || '');
+      if (!tag) return false;
+      if (includePrerelease) return row.prerelease === true;
+      return row.prerelease !== true;
+    });
+    const list = filtered
+      .map((row) => addonUpdateReleasePayloadToInfo(row, repo.repository))
+      .filter(Boolean);
+    if (!list.length) {
       throw new Error(t('addon_update_status_release_missing'));
     }
+    return list;
+  }
 
-    const tag = clean(payload && payload.tag_name ? payload.tag_name : '');
-    const version = addonUpdateVersionFromTag(tag);
-    const releaseUrl = clean(payload && payload.html_url ? payload.html_url : '');
-    const asset = addonUpdatePickReleaseAsset(payload && payload.assets);
+  async function fetchAddonLatestReleaseInfo(repositoryInput = '', optionsInput = {}) {
+    const list = await fetchAddonReleaseList(repositoryInput, optionsInput);
+    if (!Array.isArray(list) || !list.length) {
+      throw new Error(t('addon_update_status_release_missing'));
+    }
+    return list[0];
+  }
 
-    return {
-      repository: repo.repository,
-      tag,
-      version,
-      releaseUrl,
-      assetName: clean(asset && asset.name ? asset.name : ''),
-      assetUrl: clean(asset && asset.browser_download_url ? asset.browser_download_url : ''),
-    };
+  function addonUpdateCandidateStateFileUrls() {
+    const pathname = clean(window.location && window.location.pathname ? window.location.pathname : '');
+    const baseCandidates = ['data/grocy-addon-state.json', '/data/grocy-addon-state.json', 'grocy-addon-state.json'];
+    if (!pathname) return baseCandidates;
+    const basePath = pathname.replace(/\/[^/]*$/, '/');
+    return Array.from(new Set([
+      `${basePath}data/grocy-addon-state.json`,
+      `${basePath}grocy-addon-state.json`,
+      ...baseCandidates,
+    ]));
+  }
+
+  async function fetchAddonInstalledStateFromFile() {
+    const urls = addonUpdateCandidateStateFileUrls();
+    for (let i = 0; i < urls.length; i += 1) {
+      const url = urls[i];
+      try {
+        const response = await fetch(url, { cache: 'no-store' });
+        if (!response || !response.ok) continue;
+        const payload = await response.json();
+        if (!payload || typeof payload !== 'object') continue;
+        const tag = clean(payload.release_tag || '');
+        if (!tag) continue;
+        return {
+          tag,
+          version: addonUpdateVersionFromTag(tag),
+          installedAt: clean(payload.installed_at || ''),
+        };
+      } catch (_err) {
+        // try next candidate
+      }
+    }
+    return null;
+  }
+
+  async function refreshAddonInstalledVersionFromFile() {
+    if (S.addonUpdateLocalVersionPromise) return S.addonUpdateLocalVersionPromise;
+    S.addonUpdateLocalVersionPromise = (async () => {
+      try {
+        const installed = await fetchAddonInstalledStateFromFile();
+        if (!installed) return addonUpdateState();
+        const next = saveAddonUpdateState({
+          localInstalledTag: clean(installed.tag || ''),
+          localInstalledVersion: clean(installed.version || ''),
+          localInstalledAt: clean(installed.installedAt || ''),
+        });
+        syncAddonUpdateVersionSummary(next);
+        syncStatNerdAboutInfoBlock(next);
+        return next;
+      } finally {
+        S.addonUpdateLocalVersionPromise = null;
+      }
+    })();
+    return S.addonUpdateLocalVersionPromise;
   }
 
   async function copyTextToClipboard(textInput = '') {
@@ -8966,6 +9155,108 @@
     node.textContent = clean(text || '');
   }
 
+  function addonUpdateReleaseChoices() {
+    return Array.isArray(S.addonUpdateReleaseChoices) ? S.addonUpdateReleaseChoices : [];
+  }
+
+  function setAddonUpdateReleaseChoices(listInput = null) {
+    const list = Array.isArray(listInput) ? listInput : [];
+    S.addonUpdateReleaseChoices = list
+      .map((row) => (row && typeof row === 'object' ? row : null))
+      .filter(Boolean)
+      .map((row) => ({
+        repository: clean(row.repository || ''),
+        tag: clean(row.tag || ''),
+        version: clean(row.version || addonUpdateVersionFromTag(row.tag || '')),
+        releaseUrl: clean(row.releaseUrl || ''),
+        assetName: clean(row.assetName || ''),
+        assetUrl: clean(row.assetUrl || ''),
+        prerelease: row.prerelease === true,
+        publishedAt: clean(row.publishedAt || ''),
+        changelog: String(row.changelog || ''),
+      }))
+      .filter((row) => !!row.tag);
+  }
+
+  function renderAddonUpdateChangelog(changelogInput = '', metaInput = null) {
+    const node = document.getElementById('dash_addon_update_changelog');
+    if (!node) return;
+    const text = String(changelogInput || '').replace(/\r\n/g, '\n').trim();
+    const meta = metaInput && typeof metaInput === 'object' ? metaInput : {};
+    const tag = clean(meta.tag || '');
+    const publishedAt = clean(meta.publishedAt || '');
+    if (!text) {
+      node.innerHTML = `<div class="small text-muted">${escapeHtml(t('addon_update_changelog_empty'))}</div>`;
+      syncStatNerdAboutInfoBlock();
+      return;
+    }
+    const headerBits = [];
+    if (tag) headerBits.push(t('addon_update_open_release_tag', { tag }));
+    if (publishedAt) headerBits.push(addonUpdateFormatDate(publishedAt) || publishedAt);
+    const header = headerBits.length ? `<div class="small text-muted mb-1">${escapeHtml(headerBits.join(' | '))}</div>` : '';
+    node.innerHTML = `${header}<pre class="dash-addon-update-changelog mb-0">${escapeHtml(text)}</pre>`;
+    syncStatNerdAboutInfoBlock();
+  }
+
+  function syncAddonUpdateReleaseChoicesUi(stateInput = null) {
+    const host = document.getElementById('dash_addon_update_release_choices');
+    if (!host) return;
+    const state = normalizeAddonUpdateState(stateInput || addonUpdateState());
+    const list = addonUpdateReleaseChoices();
+    if (!list.length) {
+      host.innerHTML = `<div class="small text-muted">${escapeHtml(t('addon_update_release_list_empty'))}</div>`;
+      renderAddonUpdateChangelog(state.selectedChangelog || '', {
+        tag: state.latestTag,
+        publishedAt: state.selectedPublishedAt,
+      });
+      return;
+    }
+    const selectedTag = clean(state.latestTag || list[0].tag || '');
+    host.innerHTML = list.map((row) => {
+      const rowTag = clean(row.tag || '');
+      const isSelected = rowTag === selectedTag;
+      const css = isSelected ? 'btn-outline-info' : 'btn-outline-secondary';
+      const badge = row.prerelease ? `<span class="badge badge-warning ml-1">${escapeHtml(t('addon_update_release_badge_prerelease'))}</span>` : '';
+      const dateText = clean(row.publishedAt || '');
+      const label = `${rowTag}${dateText ? ` • ${addonUpdateFormatDate(dateText) || dateText}` : ''}`;
+      return `<button type="button" class="btn ${css} btn-sm mr-1 mb-1" data-addon-release-tag="${escapeHtml(rowTag)}">${escapeHtml(label)}${badge}</button>`;
+    }).join('');
+    const selected = list.find((row) => clean(row.tag || '') === selectedTag) || list[0];
+    renderAddonUpdateChangelog(selected ? selected.changelog : state.selectedChangelog, {
+      tag: selected ? selected.tag : state.latestTag,
+      publishedAt: selected ? selected.publishedAt : state.selectedPublishedAt,
+    });
+  }
+
+  function selectAddonUpdateReleaseByTag(tagInput = '', optionsInput = {}) {
+    const options = optionsInput && typeof optionsInput === 'object' ? optionsInput : {};
+    const tag = clean(tagInput || '');
+    if (!tag) return null;
+    const list = addonUpdateReleaseChoices();
+    const release = list.find((row) => clean(row.tag || '') === tag);
+    if (!release) return null;
+    const next = saveAddonUpdateState({
+      repository: clean(release.repository || addonUpdateState().repository || ADDON_UPDATE_DEFAULT_REPOSITORY),
+      latestTag: clean(release.tag || ''),
+      latestVersion: clean(release.version || ''),
+      releaseUrl: clean(release.releaseUrl || ''),
+      assetUrl: clean(release.assetUrl || ''),
+      assetName: clean(release.assetName || ''),
+      selectedChangelog: String(release.changelog || ''),
+      selectedPublishedAt: clean(release.publishedAt || ''),
+      includePrerelease: release.prerelease === true,
+    });
+    syncAddonUpdateCommandFields(next);
+    syncAddonUpdateReleaseLink(next);
+    syncAddonUpdateVersionSummary(next);
+    syncAddonUpdateReleaseChoicesUi(next);
+    syncAddonUpdateSettingsSection();
+    if (options.withStatus === true) {
+      setAddonUpdateSettingsStatus(t('addon_update_release_selected', { tag: release.tag }), 'success');
+    }
+    return next;
+  }
+
   function syncAddonUpdateReleaseLink(stateInput = null) {
     const state = normalizeAddonUpdateState(stateInput || addonUpdateState());
     const link = document.getElementById('dash_addon_update_open_release');
@@ -8995,7 +9286,7 @@
 
   function syncAddonUpdateVersionSummary(stateInput = null) {
     const state = normalizeAddonUpdateState(stateInput || addonUpdateState());
-    const localVersion = clean(ADDON_RUNTIME_VERSION || '') || t('addon_update_version_unknown');
+    const localVersion = addonUpdateLocalVersionValue(state);
     const remoteVersion = clean(state.latestVersion || addonUpdateVersionFromTag(state.latestTag || '')) || t('addon_update_version_unknown');
     const tag = clean(state.latestTag || '') || '-';
     const checkedLabel = state.checkedAt
@@ -9009,8 +9300,10 @@
     const busy = S.addonUpdateChecking === true;
     const ids = [
       'dash_addon_update_repo',
-      'dash_addon_update_include_prerelease',
-      'dash_addon_update_check',
+      'dash_addon_update_local_root',
+      'dash_addon_update_local_root_browse',
+      'dash_addon_update_check_stable',
+      'dash_addon_update_check_prerelease',
       'dash_addon_update_copy_ps',
       'dash_addon_update_copy_sh',
     ];
@@ -9047,11 +9340,13 @@
     return copied;
   }
 
-  async function runAddonUpdateVersionCheck() {
+  async function runAddonUpdateVersionCheck(optionsInput = {}) {
     if (S.addonUpdateChecking) return null;
+    const options = optionsInput && typeof optionsInput === 'object' ? optionsInput : {};
+    const includePrerelease = options.includePrerelease === true;
     const repoInput = document.getElementById('dash_addon_update_repo');
-    const prereleaseToggle = document.getElementById('dash_addon_update_include_prerelease');
-    const includePrerelease = prereleaseToggle?.checked === true;
+    const localRootInput = document.getElementById('dash_addon_update_local_root');
+    const localRootPath = addonUpdateNormalizeLocalRootPath(localRootInput?.value || addonUpdateState().localRootPath || ADDON_UPDATE_DEFAULT_LOCAL_ROOT);
     const candidate = addonUpdateRepositoryText(repoInput?.value || addonUpdateState().repository || ADDON_UPDATE_DEFAULT_REPOSITORY);
     const parts = addonUpdateRepositoryParts(candidate);
     if (!parts) {
@@ -9059,6 +9354,7 @@
       const invalidState = saveAddonUpdateState({
         repository: clean(repoInput?.value || candidate || ADDON_UPDATE_DEFAULT_REPOSITORY),
         includePrerelease,
+        localRootPath,
         checkedAt: new Date().toISOString(),
         lastError: msg,
         lastStatus: t('addon_update_status_error', { msg }),
@@ -9067,20 +9363,28 @@
       syncAddonUpdateCommandFields(invalidState);
       syncAddonUpdateReleaseLink(invalidState);
       syncAddonUpdateVersionSummary(invalidState);
+      syncAddonUpdateReleaseChoicesUi(invalidState);
       syncAddonUpdateSettingsSection();
       return null;
     }
 
     if (repoInput) repoInput.value = parts.repository;
-    saveAddonUpdateState({ repository: parts.repository, includePrerelease, lastError: '' });
+    if (localRootInput) localRootInput.value = localRootPath;
+    saveAddonUpdateState({ repository: parts.repository, includePrerelease, localRootPath, lastError: '' });
 
     S.addonUpdateChecking = true;
     syncAddonUpdateSettingsSection();
 
     let finalState = null;
     try {
-      const release = await fetchAddonLatestReleaseInfo(parts.repository, { includePrerelease });
-      const localVersion = clean(ADDON_RUNTIME_VERSION || '') || t('addon_update_version_unknown');
+      await refreshAddonInstalledVersionFromFile();
+      const releases = await fetchAddonReleaseList(parts.repository, { includePrerelease, limit: 25 });
+      setAddonUpdateReleaseChoices(releases);
+      const release = Array.isArray(releases) && releases.length ? releases[0] : null;
+      if (!release) {
+        throw new Error(t('addon_update_status_release_missing'));
+      }
+      const localVersion = addonUpdateLocalVersionValue(addonUpdateState());
       const remoteVersion = clean(release.version || addonUpdateVersionFromTag(release.tag || '')) || t('addon_update_version_unknown');
       const tag = clean(release.tag || '-');
       const compare = compareAddonSemver(localVersion, remoteVersion);
@@ -9111,12 +9415,15 @@
       finalState = saveAddonUpdateState({
         repository: release.repository || parts.repository,
         includePrerelease,
+        localRootPath,
         checkedAt: new Date().toISOString(),
         latestTag: clean(release.tag || ''),
         latestVersion: clean(release.version || ''),
         releaseUrl: clean(release.releaseUrl || ''),
         assetUrl: clean(release.assetUrl || ''),
         assetName: clean(release.assetName || ''),
+        selectedChangelog: String(release.changelog || ''),
+        selectedPublishedAt: clean(release.publishedAt || ''),
         lastError: '',
         lastStatus: statusText,
         lastStatusLevel: statusLevel,
@@ -9126,6 +9433,7 @@
       finalState = saveAddonUpdateState({
         repository: parts.repository,
         includePrerelease,
+        localRootPath,
         checkedAt: new Date().toISOString(),
         lastError: message,
         lastStatus: t('addon_update_status_error', { msg: message }),
@@ -9137,6 +9445,8 @@
       syncAddonUpdateCommandFields(state);
       syncAddonUpdateReleaseLink(state);
       syncAddonUpdateVersionSummary(state);
+      syncAddonUpdateReleaseChoicesUi(state);
+      syncStatNerdAboutInfoBlock(state);
       syncAddonUpdateSettingsSection();
     }
 
@@ -9146,13 +9456,16 @@
   function fillAddonUpdateSettingsForm() {
     const state = addonUpdateState();
     const repoInput = document.getElementById('dash_addon_update_repo');
-    const prereleaseToggle = document.getElementById('dash_addon_update_include_prerelease');
+    const localRootInput = document.getElementById('dash_addon_update_local_root');
     if (repoInput) repoInput.value = clean(state.repository || ADDON_UPDATE_DEFAULT_REPOSITORY);
-    if (prereleaseToggle) prereleaseToggle.checked = state.includePrerelease === true;
+    if (localRootInput) localRootInput.value = addonUpdateNormalizeLocalRootPath(state.localRootPath || ADDON_UPDATE_DEFAULT_LOCAL_ROOT);
     syncAddonUpdateCommandFields(state);
     syncAddonUpdateReleaseLink(state);
     syncAddonUpdateVersionSummary(state);
+    syncAddonUpdateReleaseChoicesUi(state);
+    syncStatNerdAboutInfoBlock(state);
     syncAddonUpdateSettingsSection();
+    refreshAddonInstalledVersionFromFile();
   }
 
   function providerFormFieldId(providerId, fieldName) {
@@ -9948,8 +10261,10 @@
       'dash_addon_compat_map',
       'dash_addon_compat_reoffer',
       'dash_addon_update_repo',
-      'dash_addon_update_include_prerelease',
-      'dash_addon_update_check',
+      'dash_addon_update_local_root',
+      'dash_addon_update_local_root_browse',
+      'dash_addon_update_check_stable',
+      'dash_addon_update_check_prerelease',
       'dash_addon_update_copy_ps',
       'dash_addon_update_copy_sh',
       'dash_brand_logo_save_section',
@@ -11256,23 +11571,36 @@
     section.innerHTML = `
       <div class="small font-weight-bold mb-2">${t('settings_section_addon_update')}</div>
       <div class="small text-muted mb-2">${t('addon_update_desc')}</div>
+      <div class="form-group mb-2">
+        <label for="dash_addon_update_local_root" class="mb-1">${t('addon_update_local_root_label')}</label>
+        <div class="input-group input-group-sm">
+          <input id="dash_addon_update_local_root" type="text" class="form-control form-control-sm" placeholder="${escapeHtml(ADDON_UPDATE_DEFAULT_LOCAL_ROOT)}">
+          <div class="input-group-append">
+            <button id="dash_addon_update_local_root_browse" type="button" class="btn btn-outline-secondary">${t('addon_update_local_root_browse_btn')}</button>
+          </div>
+        </div>
+        <input id="dash_addon_update_local_root_picker" type="file" class="d-none" webkitdirectory directory multiple>
+        <div class="small text-muted mt-1">${t('addon_update_local_root_hint')}</div>
+      </div>
       <div class="form-row align-items-end">
-        <div class="form-group col-md-8 mb-2">
+        <div class="form-group col-md-7 mb-2">
           <label for="dash_addon_update_repo" class="mb-1">${t('addon_update_repo_label')}</label>
           <input id="dash_addon_update_repo" type="text" class="form-control form-control-sm" placeholder="Raph563/Grocy">
           <div class="small text-muted mt-1">${t('addon_update_repo_hint')}</div>
         </div>
-        <div class="form-group col-md-4 mb-2 d-flex justify-content-md-end align-items-end">
-          <button id="dash_addon_update_check" type="button" class="btn btn-outline-info btn-sm mr-2">${t('addon_update_check_btn')}</button>
+        <div class="form-group col-md-5 mb-2 d-flex flex-wrap justify-content-md-end align-items-end">
+          <button id="dash_addon_update_check_stable" type="button" class="btn btn-outline-info btn-sm mr-2 mb-1">${t('addon_update_check_stable_btn')}</button>
+          <button id="dash_addon_update_check_prerelease" type="button" class="btn btn-outline-warning btn-sm mr-2 mb-1">${t('addon_update_check_prerelease_btn')}</button>
           <a id="dash_addon_update_open_release" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm d-none">${t('addon_update_open_release_btn')}</a>
         </div>
       </div>
       <div class="form-group mb-2">
-        <div class="custom-control custom-switch">
-          <input type="checkbox" class="custom-control-input" id="dash_addon_update_include_prerelease">
-          <label class="custom-control-label" for="dash_addon_update_include_prerelease">${t('addon_update_include_prerelease_label')}</label>
-        </div>
-        <div class="small text-muted mt-1">${t('addon_update_include_prerelease_hint')}</div>
+        <label class="mb-1">${t('addon_update_release_list_label')}</label>
+        <div id="dash_addon_update_release_choices" class="d-flex flex-wrap align-items-start"></div>
+      </div>
+      <div class="form-group mb-2">
+        <label class="mb-1">${t('addon_update_changelog_label')}</label>
+        <div id="dash_addon_update_changelog"></div>
       </div>
       <div class="form-group mb-2">
         <label for="dash_addon_update_cmd_ps" class="mb-1">${t('addon_update_cmd_ps_label')}</label>
@@ -11315,35 +11643,72 @@
       syncAddonUpdateVersionSummary(next);
       syncAddonUpdateSettingsSection();
     });
-    section.querySelector('#dash_addon_update_include_prerelease')?.addEventListener('change', (event) => {
+    section.querySelector('#dash_addon_update_local_root')?.addEventListener('change', (event) => {
       const target = event && event.target ? event.target : null;
-      const enabled = !!(target && target.checked === true);
+      if (!target) return;
+      const localRootPath = addonUpdateNormalizeLocalRootPath(target.value || '');
+      target.value = localRootPath;
       const next = saveAddonUpdateState({
-        includePrerelease: enabled,
-        checkedAt: '',
-        latestTag: '',
-        latestVersion: '',
-        releaseUrl: '',
-        assetUrl: '',
-        assetName: '',
-        lastStatus: '',
-        lastStatusLevel: 'muted',
-        lastError: '',
+        localRootPath,
       });
       syncAddonUpdateCommandFields(next);
       syncAddonUpdateReleaseLink(next);
       syncAddonUpdateVersionSummary(next);
       syncAddonUpdateSettingsSection();
     });
+    section.querySelector('#dash_addon_update_local_root_browse')?.addEventListener('click', () => {
+      const picker = document.getElementById('dash_addon_update_local_root_picker');
+      if (picker && typeof picker.click === 'function') picker.click();
+    });
+    section.querySelector('#dash_addon_update_local_root_picker')?.addEventListener('change', (event) => {
+      const picker = event && event.target ? event.target : null;
+      if (!picker) return;
+      const files = Array.isArray(picker.files) ? picker.files : Array.from(picker.files || []);
+      const first = files.length ? files[0] : null;
+      let pickedPath = '';
+      if (first && typeof first.path === 'string' && first.path) {
+        const rel = typeof first.webkitRelativePath === 'string' ? first.webkitRelativePath : '';
+        if (rel) {
+          const escapedRel = rel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          pickedPath = first.path.replace(new RegExp(`[\\\\/]${escapedRel}$`), '');
+        } else {
+          pickedPath = first.path.replace(/[\\/][^\\/]+$/, '');
+        }
+      }
+      if (!pickedPath) {
+        setAddonUpdateSettingsStatus(t('addon_update_local_root_pick_fail'), 'warning');
+        return;
+      }
+      const rootInput = document.getElementById('dash_addon_update_local_root');
+      const normalized = addonUpdateNormalizeLocalRootPath(pickedPath);
+      if (rootInput) rootInput.value = normalized;
+      const next = saveAddonUpdateState({ localRootPath: normalized });
+      syncAddonUpdateCommandFields(next);
+      syncAddonUpdateVersionSummary(next);
+      syncAddonUpdateSettingsSection();
+    });
 
-    section.querySelector('#dash_addon_update_check')?.addEventListener('click', async () => {
-      await runAddonUpdateVersionCheck();
+    section.querySelector('#dash_addon_update_check_stable')?.addEventListener('click', async () => {
+      await runAddonUpdateVersionCheck({ includePrerelease: false });
+    });
+    section.querySelector('#dash_addon_update_check_prerelease')?.addEventListener('click', async () => {
+      await runAddonUpdateVersionCheck({ includePrerelease: true });
     });
     section.querySelector('#dash_addon_update_copy_ps')?.addEventListener('click', async () => {
       await copyAddonUpdateCommandFromField('dash_addon_update_cmd_ps');
     });
     section.querySelector('#dash_addon_update_copy_sh')?.addEventListener('click', async () => {
       await copyAddonUpdateCommandFromField('dash_addon_update_cmd_sh');
+    });
+    section.querySelector('#dash_addon_update_release_choices')?.addEventListener('click', (event) => {
+      const target = event && event.target;
+      if (!target || typeof target.closest !== 'function') return;
+      const button = target.closest('[data-addon-release-tag]');
+      if (!button) return;
+      const tag = clean(button.getAttribute('data-addon-release-tag') || '');
+      if (!tag) return;
+      event.preventDefault();
+      selectAddonUpdateReleaseByTag(tag, { withStatus: true });
     });
 
     fillAddonUpdateSettingsForm();
@@ -11357,16 +11722,32 @@
     block.id = 'dash_donne_about_info';
     block.className = 'small text-muted mt-3 pt-2 border-top';
     block.innerHTML = `
-      <div class="font-weight-bold mb-1">${t('donne_about_title')}</div>
-      <div>${escapeHtml(t('donne_about_author', { author: DONNE_AUTHOR_NAME }))}</div>
-      <div>${escapeHtml(t('donne_about_version', { version: ADDON_RUNTIME_VERSION }))}</div>
+      <div class="font-weight-bold mb-1">${t('statnerd_about_title')}</div>
+      <div>${escapeHtml(t('statnerd_about_author', { author: STATNERD_AUTHOR_NAME }))}</div>
+      <div id="dash_statnerd_about_version_line">${escapeHtml(t('statnerd_about_version', { version: addonUpdateLocalVersionValue() }))}</div>
       <div class="mt-1 d-flex flex-wrap">
-        <a class="mr-2" href="${escapeHtml(DONNE_REPO_URL + '/releases')}" target="_blank" rel="noopener noreferrer">${escapeHtml(t('donne_about_release_link'))}</a>
-        <a class="mr-2" href="${escapeHtml(DONNE_CHANGELOG_URL)}" target="_blank" rel="noopener noreferrer">${escapeHtml(t('donne_about_changelog_link'))}</a>
-        <a href="${escapeHtml(DONNE_DOCS_URL)}" target="_blank" rel="noopener noreferrer">${escapeHtml(t('donne_about_docs_link'))}</a>
+        <a class="mr-2" href="${escapeHtml(STATNERD_REPO_URL + '/releases')}" target="_blank" rel="noopener noreferrer">${escapeHtml(t('statnerd_about_release_link'))}</a>
+        <a class="mr-2" href="${escapeHtml(STATNERD_CHANGELOG_URL)}" target="_blank" rel="noopener noreferrer">${escapeHtml(t('statnerd_about_changelog_link'))}</a>
+        <a href="${escapeHtml(STATNERD_DOCS_URL)}" target="_blank" rel="noopener noreferrer">${escapeHtml(t('statnerd_about_docs_link'))}</a>
       </div>
+      <div class="font-weight-bold mt-2 mb-1">${escapeHtml(t('statnerd_about_selected_changelog'))}</div>
+      <pre id="dash_statnerd_about_changelog" class="dash-addon-update-changelog mb-0">${escapeHtml(t('addon_update_changelog_empty'))}</pre>
     `;
     section.appendChild(block);
+    syncStatNerdAboutInfoBlock();
+  }
+
+  function syncStatNerdAboutInfoBlock(stateInput = null) {
+    const state = normalizeAddonUpdateState(stateInput || addonUpdateState());
+    const versionNode = document.getElementById('dash_statnerd_about_version_line');
+    if (versionNode) {
+      versionNode.textContent = t('statnerd_about_version', { version: addonUpdateLocalVersionValue(state) });
+    }
+    const changelogNode = document.getElementById('dash_statnerd_about_changelog');
+    if (changelogNode) {
+      const text = String(state.selectedChangelog || '').replace(/\r\n/g, '\n').trim();
+      changelogNode.textContent = text || t('addon_update_changelog_empty');
+    }
   }
 
   function donneSettingsGroupDefinitions() {

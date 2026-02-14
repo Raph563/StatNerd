@@ -1,6 +1,6 @@
-# Donne Atlas - Addon Pack (EN)
+# StatNerd - Addon Pack (EN)
 
-This directory contains the Donne Atlas distributable addon pack.
+This directory contains the StatNerd distributable addon pack.
 
 ## Contents
 
