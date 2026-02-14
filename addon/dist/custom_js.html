@@ -720,6 +720,7 @@
   const ADDON_UPDATE_DEFAULT_REPOSITORY = 'Raph563/Grocy';
   const ADDON_UPDATE_DEFAULT_LOCAL_ROOT = 'C:\\Users\\Admin\\Documents\\Docker\\grocy';
   const ADDON_UPDATE_RELAY_BASE_URL = 'http://127.0.0.1:17863';
+  const NO_DUE_SENTINEL_DATE = '2999-12-31';
   const STATNERD_AUTHOR_NAME = 'Raph563';
   const STATNERD_REPO_URL = 'https://github.com/Raph563/Grocy';
   const STATNERD_CHANGELOG_URL = `${STATNERD_REPO_URL}/blob/main/CHANGELOG.md`;
@@ -1304,6 +1305,13 @@
       lang_name_fr: 'Français',
       lang_name_en: 'English',
       lang_mode_label: 'Langue de l’interface',
+      due_date_format_label: 'Format date péremption',
+      due_date_format_hint: 'Format utilisé pour afficher les dates de péremption dans les infos locales.',
+      due_date_format_hint_sample: 'Exemple: {{sample}}',
+      due_date_format_auto: 'Auto (langue UI)',
+      due_date_format_ymd: 'YYYY-MM-DD',
+      due_date_format_dmy: 'DD/MM/YYYY',
+      due_date_format_mdy: 'MM/DD/YYYY',
       lang_mode_hint_auto: 'Détection automatique: {{lang}}',
       lang_mode_hint_fixed: 'Langue forcée: {{lang}}',
       tab_food: 'Nourriture',
@@ -1738,8 +1746,10 @@
       hover_preview_empty: 'Aucun produit correspondant.',
       due_no_date_text: 'sans date',
       due_over_by: 'dépassé de {{days}}',
+      due_over_by_span: 'dépassé de {{span}}',
       due_today: 'aujourd’hui',
       due_in: 'dans {{days}}',
+      due_in_span: 'dans {{span}}',
       ranking_context_line: '{{products}}/{{total}} analysés | {{cards}} classements.',
       rank_value_text: 'valeur {{value}}',
       rank_quantity_text: 'quantité {{value}}',
@@ -1939,6 +1949,13 @@
       lang_name_fr: 'French',
       lang_name_en: 'English',
       lang_mode_label: 'Interface language',
+      due_date_format_label: 'Expiry date format',
+      due_date_format_hint: 'Format used to display expiry dates in local info.',
+      due_date_format_hint_sample: 'Example: {{sample}}',
+      due_date_format_auto: 'Auto (UI language)',
+      due_date_format_ymd: 'YYYY-MM-DD',
+      due_date_format_dmy: 'DD/MM/YYYY',
+      due_date_format_mdy: 'MM/DD/YYYY',
       lang_mode_hint_auto: 'Automatic detection: {{lang}}',
       lang_mode_hint_fixed: 'Forced language: {{lang}}',
       tab_food: 'Food',
@@ -2373,8 +2390,10 @@
       hover_preview_empty: 'No matching product.',
       due_no_date_text: 'no date',
       due_over_by: 'overdue by {{days}}',
+      due_over_by_span: 'overdue by {{span}}',
       due_today: 'today',
       due_in: 'in {{days}}',
+      due_in_span: 'in {{span}}',
       ranking_context_line: '{{products}}/{{total}} analyzed | {{cards}} rankings.',
       rank_value_text: 'value {{value}}',
       rank_quantity_text: 'quantity {{value}}',
@@ -2575,9 +2594,47 @@
   const norm = (v) => (v || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
   const clean = (v) => (v || '').toString().replace(/\s+/g, ' ').trim();
 
+  function isNoDueSentinelDateValue(value) {
+    if (!value) return false;
+    if (typeof value === 'string') {
+      const text = clean(value);
+      const normalized = text.length >= 10 ? text.slice(0, 10) : text;
+      return normalized === NO_DUE_SENTINEL_DATE;
+    }
+    try {
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return false;
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}` === NO_DUE_SENTINEL_DATE;
+    } catch (_err) {
+      return false;
+    }
+  }
+
+  function normalizeDueDateValue(value) {
+    if (!value) return null;
+    if (isNoDueSentinelDateValue(value)) return null;
+    try {
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return null;
+      if (isNoDueSentinelDateValue(d)) return null;
+      return d;
+    } catch (_err) {
+      return null;
+    }
+  }
+
   function normalizeUiLanguageMode(value) {
     const mode = clean(value).toLowerCase();
     if (mode === 'fr' || mode === 'en') return mode;
+    return 'auto';
+  }
+
+  function normalizeDueDateDisplayFormat(value) {
+    const mode = clean(value).toLowerCase();
+    if (mode === 'ymd' || mode === 'dmy' || mode === 'mdy') return mode;
     return 'auto';
   }
 
@@ -2684,6 +2741,7 @@
       focusMode: 'eco',
       validationMode: 'single',
       uiLanguageMode: 'auto',
+      dueDateDisplayFormat: 'auto',
       temperature: 0.25,
       timeoutMs: 18000,
       providers: buildDefaultProviderSettings(),
@@ -2750,6 +2808,7 @@
       focusMode: normalizeAiFocusMode(raw.focusMode || fallback.focusMode),
       validationMode: normalizeAiValidationMode(raw.validationMode || fallback.validationMode),
       uiLanguageMode: normalizeUiLanguageMode(raw.uiLanguageMode || fallback.uiLanguageMode),
+      dueDateDisplayFormat: normalizeDueDateDisplayFormat(raw.dueDateDisplayFormat || fallback.dueDateDisplayFormat),
       temperature: clamp(num(Object.prototype.hasOwnProperty.call(raw, 'temperature') ? raw.temperature : fallback.temperature), 0, 1.2),
       timeoutMs: clamp(num(Object.prototype.hasOwnProperty.call(raw, 'timeoutMs') ? raw.timeoutMs : fallback.timeoutMs), 3000, 120000),
       providers,
@@ -9906,6 +9965,17 @@
     }
   }
 
+  function syncDueDateDisplayFormat(modeInput) {
+    const mode = normalizeDueDateDisplayFormat(modeInput);
+    const select = document.getElementById('dash_due_date_format');
+    if (select) select.value = mode;
+    const hint = document.getElementById('dash_due_date_format_hint');
+    if (hint) {
+      const sample = formatDueDate(new Date('2026-02-14T00:00:00'), { ...normalizeAiSettings(aiSettings()), dueDateDisplayFormat: mode });
+      hint.textContent = `${t('due_date_format_hint')} ${t('due_date_format_hint_sample', { sample })}`;
+    }
+  }
+
   function refreshTabsLanguageLabels() {
     const groupFilter = document.getElementById('product-group-filter');
     const allLabel = clean(groupFilter?.querySelector('option[value="all"]')?.textContent || (resolveUiLanguage() === 'fr' ? 'Tout' : 'All'));
@@ -10213,6 +10283,7 @@
     if (fallbackToggle) fallbackToggle.checked = settings.useFallback === true;
     if (focusMode) focusMode.value = normalizeAiFocusMode(settings.focusMode);
     syncUiLanguageModeButtons(settings.uiLanguageMode);
+    syncDueDateDisplayFormat(settings.dueDateDisplayFormat);
     syncValidationModeButtons(settings.validationMode);
     if (fallbackList) {
       const selected = new Set(settings.fallbackProviders || []);
@@ -10265,6 +10336,7 @@
     const validationMode = selectedValidationModeFromForm(base);
     const useFallback = validationMode === 'fallback_chain' && document.getElementById('dash_ai_fallback_enabled')?.checked === true;
     const uiLanguageMode = selectedUiLanguageModeFromForm(base);
+    const dueDateDisplayFormat = normalizeDueDateDisplayFormat(document.getElementById('dash_due_date_format')?.value || base.dueDateDisplayFormat);
     const fallbackList = document.getElementById('dash_ai_fallback_list');
     const fallbackProviders = validationMode === 'fallback_chain'
       ? orderedFallbackProvidersFromUi(activeProvider, fallbackList)
@@ -10296,6 +10368,7 @@
       focusMode,
       validationMode,
       uiLanguageMode,
+      dueDateDisplayFormat,
       fallbackProviders,
       temperature: temp,
       timeoutMs,
@@ -10312,6 +10385,7 @@
     const validationMode = selectedValidationModeFromForm(base);
     const useFallback = validationMode === 'fallback_chain' && document.getElementById('dash_ai_fallback_enabled')?.checked === true;
     const uiLanguageMode = selectedUiLanguageModeFromForm(base);
+    const dueDateDisplayFormat = normalizeDueDateDisplayFormat(document.getElementById('dash_due_date_format')?.value || base.dueDateDisplayFormat);
     const fallbackList = document.getElementById('dash_ai_fallback_list');
     const fallbackProviders = validationMode === 'fallback_chain'
       ? orderedFallbackProvidersFromUi(activeProvider, fallbackList)
@@ -10327,6 +10401,7 @@
       focusMode,
       validationMode,
       uiLanguageMode,
+      dueDateDisplayFormat,
       fallbackProviders,
       temperature,
       timeoutMs,
@@ -10431,6 +10506,7 @@
       'dash_addon_update_check_prerelease',
       'dash_addon_update_copy_ps',
       'dash_addon_update_copy_sh',
+      'dash_due_date_format',
       'dash_brand_logo_save_section',
       'dash_brand_logo_lookup',
       'dash_brand_logo_fetch_all',
@@ -12127,6 +12203,17 @@
             </div>
 
             <div class="form-group mb-2">
+            <label for="dash_due_date_format" class="mb-1">${t('due_date_format_label')}</label>
+            <select id="dash_due_date_format" class="form-control form-control-sm">
+              <option value="auto">${t('due_date_format_auto')}</option>
+              <option value="ymd">${t('due_date_format_ymd')}</option>
+              <option value="dmy">${t('due_date_format_dmy')}</option>
+              <option value="mdy">${t('due_date_format_mdy')}</option>
+            </select>
+            <div id="dash_due_date_format_hint" class="small text-muted mt-1">${t('due_date_format_hint')}</div>
+            </div>
+
+            <div class="form-group mb-2">
             <label class="mb-1">${t('ai_validation_mode_label')}</label>
             <div id="dash_ai_validation_switch" class="btn-group btn-group-sm d-flex dash-lang-switch dash-validation-switch" role="group" aria-label="${t('ai_validation_mode_label')}">
               <button type="button" class="btn btn-outline-secondary" data-ai-validation="single" title="${t('ai_validation_mode_single_tip')}">${t('ai_validation_mode_single')}</button>
@@ -12320,6 +12407,10 @@
         event.preventDefault();
         applyUiLanguageModeInstant(button.dataset.uiLang || 'auto', { reload: false });
       });
+    });
+    document.getElementById('dash_due_date_format')?.addEventListener('change', () => {
+      syncDueDateDisplayFormat(document.getElementById('dash_due_date_format')?.value || 'auto');
+      saveAiNonProviderSettingsFromForm('');
     });
     document.querySelectorAll('#dash_ai_validation_switch [data-ai-validation]').forEach((button) => {
       button.addEventListener('click', (event) => {
@@ -13902,8 +13993,9 @@
     if (!cell) return null;
     const t = clean(cell.querySelector('span[id$="-next-due-date"]')?.textContent || cell.textContent || '');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) return null;
-    const d = new Date(t + 'T00:00:00');
-    return Number.isNaN(d.getTime()) ? null : d;
+    if (isNoDueSentinelDateValue(t)) return null;
+    const d = normalizeDueDateValue(`${t}T00:00:00`);
+    return d || null;
   }
 
   function extractStatusTokens(tr, cells, col) {
@@ -15182,8 +15274,9 @@
     if (!text) return null;
     const normalized = text.length >= 10 ? text.slice(0, 10) : text;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return null;
-    const date = new Date(`${normalized}T00:00:00`);
-    return Number.isNaN(date.getTime()) ? null : date;
+    if (isNoDueSentinelDateValue(normalized)) return null;
+    const date = normalizeDueDateValue(`${normalized}T00:00:00`);
+    return date || null;
   }
 
   function computeDueFlags(item) {
@@ -17369,18 +17462,53 @@
     takeawaysEl.innerHTML = overlayTakeawaysToHtml(narrative.takeaways);
   }
 
-  function formatDueDate(date) {
-    if (!date) return t('due_none');
-    try {
-      const d = new Date(date);
-      if (Number.isNaN(d.getTime())) return t('due_none');
+  function dueDateDisplayFormat(settingsInput = null) {
+    const settings = normalizeAiSettings(settingsInput || aiSettings());
+    return normalizeDueDateDisplayFormat(settings.dueDateDisplayFormat || 'auto');
+  }
+
+  function formatDueDate(date, settingsInput = null) {
+    const d = normalizeDueDateValue(date);
+    if (!d) return t('due_none');
+    const mode = dueDateDisplayFormat(settingsInput);
+    if (mode === 'ymd') {
       const yyyy = d.getFullYear();
       const mm = String(d.getMonth() + 1).padStart(2, '0');
       const dd = String(d.getDate()).padStart(2, '0');
       return `${yyyy}-${mm}-${dd}`;
-    } catch (_err) {
-      return t('due_none');
     }
+    const locale = mode === 'dmy'
+      ? 'fr-FR'
+      : (mode === 'mdy' ? 'en-US' : (resolveUiLanguage(settingsInput || aiSettings()) === 'en' ? 'en-US' : 'fr-FR'));
+    return d.toLocaleDateString(locale, { year: 'numeric', month: '2-digit', day: '2-digit' });
+  }
+
+  function dueDeltaSpanText(diffInput = 0) {
+    const abs = Math.abs(Math.floor(num(diffInput)));
+    let count = abs;
+    let unit = langText(abs <= 1 ? 'jour' : 'jours', abs === 1 ? 'day' : 'days');
+    if (abs > 365) {
+      count = Math.max(1, Math.round(abs / 365));
+      unit = langText(count <= 1 ? 'an' : 'ans', count === 1 ? 'year' : 'years');
+    } else if (abs > 30) {
+      count = Math.max(1, Math.round(abs / 30));
+      unit = langText('mois', count === 1 ? 'month' : 'months');
+    } else if (abs > 7) {
+      count = Math.max(1, Math.round(abs / 7));
+      unit = langText(count <= 1 ? 'semaine' : 'semaines', count === 1 ? 'week' : 'weeks');
+    }
+    return `${fmt(count, 0)} ${unit}`;
+  }
+
+  function formatDueDateWithRelative(date, settingsInput = null) {
+    const d = normalizeDueDateValue(date);
+    if (!d) return t('due_none');
+    const base = formatDueDate(d, settingsInput);
+    const diff = dueDiffDays(d);
+    if (!Number.isFinite(diff)) return base;
+    if (diff === 0) return `${base} (${t('due_today')})`;
+    if (diff < 0) return `${base} (${t('due_over_by_span', { span: dueDeltaSpanText(diff) })})`;
+    return `${base} (${t('due_in_span', { span: dueDeltaSpanText(diff) })})`;
   }
 
   function ensureHoverPreviewElement() {
@@ -20039,7 +20167,7 @@
       const productId = num(item.id);
       const row = findProductRowById(productId) || {};
       const qtySummary = quantityBaseSummaryForRow(row, num(row.amount));
-      const dueText = formatDueDate(row.due || item.due || null);
+      const dueText = formatDueDateWithRelative(row.due || item.due || null);
       const alertParts = alertPartsFromRow(row);
       return {
         chartId,
@@ -20071,7 +20199,7 @@
       const productId = num(item.id);
       const row = findProductRowById(productId) || {};
       const qtySummary = quantityBaseSummaryForRow(row, num(row.amount));
-      const dueText = formatDueDate(row.due || null);
+      const dueText = formatDueDateWithRelative(row.due || null);
       const alertParts = alertPartsFromRow(row);
       return {
         chartId,
@@ -20333,7 +20461,7 @@
     const row = rowInput && typeof rowInput === 'object' ? rowInput : {};
     const productId = num(row.id);
     const qtySummary = quantityBaseSummaryForRow(row, num(row.amount));
-    const dueText = formatDueDate(row.due || null);
+    const dueText = formatDueDateWithRelative(row.due || null);
     const alertParts = alertPartsFromRow(row);
     return {
       chartId: clean(baseFocus.chartId || ''),
@@ -20778,8 +20906,6 @@
       }
     }
     if (num(focus.n) > 0) rows.push({ type: 'plain', key: t('kpi_products'), value: fmtProducts(num(focus.n)) });
-    if (focus.value !== undefined && num(focus.value) > 0) rows.push({ type: 'plain', key: t('meta_value'), value: fmtMoney(num(focus.value)) });
-    if (focus.avgPrice !== undefined && num(focus.avgPrice) > 0) rows.push({ type: 'plain', key: t('meta_avg_price'), value: fmtMoney(num(focus.avgPrice)) });
     if (focus.price !== undefined && num(focus.price) > 0) rows.push({ type: 'plain', key: t('meta_price'), value: fmtMoney(num(focus.price)) });
     if (focus.amount !== undefined && num(focus.amount) !== 0) {
       const qtyMeta = focusQuantityDisplayMeta(focus);
@@ -21230,10 +21356,11 @@
   }
 
   function dueDiffDays(date) {
-    if (!date) return null;
+    const normalized = normalizeDueDateValue(date);
+    if (!normalized) return null;
     const now = new Date();
     now.setHours(0, 0, 0, 0);
-    const d = new Date(date);
+    const d = new Date(normalized);
     d.setHours(0, 0, 0, 0);
     return Math.floor((d.getTime() - now.getTime()) / 86400000);
   }

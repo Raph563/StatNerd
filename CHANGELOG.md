@@ -8,6 +8,20 @@ The format follows Keep a Changelog and semantic versioning.
 
 - No entries yet.
 
+## [1.2.1-alpha.13] - 2026-02-14
+
+### Fixed
+- Local focus panel no longer shows `Valeur` and `Prix moyen` rows when clicking chart elements.
+- Sentinel expiry date `2999-12-31` is now treated as “no due date” across StatNerd data parsing and due-date classification.
+
+### Added
+- New settings option for expiry date display format in interface settings:
+  - `Auto (langue UI)`
+  - `YYYY-MM-DD`
+  - `DD/MM/YYYY`
+  - `MM/DD/YYYY`
+- Local focus due date now includes relative remaining/overdue distance with adaptive units (days, weeks, months, years).
+
 ## [1.2.1-alpha.12] - 2026-02-14
 
 ### Added
