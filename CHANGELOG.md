@@ -8,6 +8,16 @@ The format follows Keep a Changelog and semantic versioning.
 
 - No entries yet.
 
+## [1.2.1-alpha.15] - 2026-02-14
+
+### Changed
+- Moved desktop relay source code out of this repository to dedicated repo:
+  - https://github.com/Raph563/StatNerd_Update_Relay
+- Replaced in-repo relay documentation links with external links to `StatNerd_Update_Relay`.
+
+### Removed
+- Removed `desktop/relay` source directory from this main repository.
+
 ## [1.2.1-alpha.14] - 2026-02-14
 
 ### Changed

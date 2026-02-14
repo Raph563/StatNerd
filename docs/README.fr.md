@@ -18,5 +18,5 @@ Fonctionnalités principales:
 - Guide release: `RELEASING.fr.md`
 - Guide débutant: `NOOB_GUIDE.fr.md`
 - Pack addon: `../addon/README.fr.md`
-- App desktop relay de mise à jour: `../desktop/relay/README.md`
+- App desktop relay de mise à jour: `https://github.com/Raph563/StatNerd_Update_Relay`
 - Version anglaise: `README.en.md`

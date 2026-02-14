@@ -16,7 +16,7 @@ Français:
 - Publication des releases: `docs/RELEASING.fr.md`
 - Guide débutant (pas à pas): `docs/NOOB_GUIDE.fr.md`
 - Pack addon: `addon/README.fr.md`
-- App desktop update relay (Windows/macOS): `desktop/relay/README.md`
+- App desktop update relay (Windows/macOS): https://github.com/Raph563/StatNerd_Update_Relay
 
 English:
 
@@ -24,7 +24,7 @@ English:
 - Release publishing: `docs/RELEASING.en.md`
 - Beginner guide (step-by-step): `docs/NOOB_GUIDE.en.md`
 - Addon pack: `addon/README.en.md`
-- Desktop update relay app (Windows/macOS): `desktop/relay/README.md`
+- Desktop update relay app (Windows/macOS): https://github.com/Raph563/StatNerd_Update_Relay
 
 ## Release Channels
 

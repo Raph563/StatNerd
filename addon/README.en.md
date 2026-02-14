@@ -10,7 +10,7 @@ This directory contains the StatNerd distributable addon pack.
 - `scripts/export-from-local.*`: export from local instance.
 - `scripts/update-from-github.*`: update from GitHub releases.
 - `docker-sidecar/`: Docker sidecar option.
-- `../desktop/relay/`: desktop relay app (one-click update from settings).
+- `StatNerd_Update_Relay`: https://github.com/Raph563/StatNerd_Update_Relay (desktop relay app, one-click updates).
 
 ## Local install (generic)
 

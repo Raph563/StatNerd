@@ -18,5 +18,5 @@ Main capabilities:
 - Release guide: `RELEASING.en.md`
 - Beginner guide: `NOOB_GUIDE.en.md`
 - Addon pack: `../addon/README.en.md`
-- Desktop update relay app: `../desktop/relay/README.md`
+- Desktop update relay app: `https://github.com/Raph563/StatNerd_Update_Relay`
 - French version: `README.fr.md`
