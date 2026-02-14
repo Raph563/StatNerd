@@ -25400,9 +25400,9 @@
         no_own_stock: snapshot.noOwnStock ? 1 : 0,
         disable_open: snapshot.disableOpen ? 1 : 0,
       });
-      if (clean(snapshot.parentSourceField || '')) {
+      if (clean(snapshot.parentSourceField || '') && snapshot.parentSourceChecked === true) {
         await userfieldApiPutPromise(`userfields/products/${snapshot.productId}`, {
-          [snapshot.parentSourceField]: snapshot.parentSourceChecked ? '1' : '0',
+          [snapshot.parentSourceField]: '1',
         });
         if (isProductFormPage()) {
           pushProductStatusTerminal(
@@ -25411,7 +25411,7 @@
             langText('Produit', 'Product'),
             [
               `${langText('Champ parent', 'Parent field')}: ${snapshot.parentSourceField}`,
-              `${langText('Valeur', 'Value')}: ${snapshot.parentSourceChecked ? '1' : '0'}`,
+              `${langText('Valeur', 'Value')}: 1`,
             ]
           );
         }
@@ -26623,14 +26623,10 @@
     }
 
     let robotRetryButton = actions.querySelector('[data-facts-robot-retry]');
-    if (!robotRetryButton) {
-      robotRetryButton = document.createElement('button');
-      robotRetryButton.type = 'button';
-      robotRetryButton.className = 'btn btn-outline-secondary btn-sm grocy-off-btn-sm grocy-off-btn-icon d-none';
-      robotRetryButton.setAttribute('data-facts-robot-retry', '1');
-      robotRetryButton.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i>';
-      actions.appendChild(robotRetryButton);
+    if (robotRetryButton && robotRetryButton.parentNode) {
+      robotRetryButton.parentNode.removeChild(robotRetryButton);
     }
+    robotRetryButton = null;
 
     let googleButton = actions.querySelector('[data-facts-google]');
     if (!googleButton) {
@@ -26669,7 +26665,6 @@
       setBarcodeAutofillStatus(headingStatus, text, tone, detailsInput);
     };
 
-    let canRetryHeaderRobot = false;
     const refreshState = () => {
       const parentMode = isProductParentModeEnabled();
       const hasBarcodeTable = !!document.getElementById('barcode-table');
@@ -26694,14 +26689,10 @@
       googleButton.setAttribute('aria-label', googleButton.title);
       robotButton.title = t('barcode_header_robot_title');
       robotButton.setAttribute('aria-label', robotButton.title);
-      robotRetryButton.title = langText('Relancer avec simplification du nom', 'Retry with simplified name');
-      robotRetryButton.setAttribute('aria-label', robotRetryButton.title);
       offButton.disabled = !hasName;
       opfButton.disabled = !hasName;
       googleButton.disabled = !hasName;
       robotButton.disabled = !hasName || settings.enabled !== true || productId <= 0 || purchaseUnitId <= 0;
-      robotRetryButton.classList.toggle('d-none', !canRetryHeaderRobot);
-      robotRetryButton.disabled = robotButton.disabled;
 
       if (robotButton.disabled && settings.enabled !== true) {
         setHeadingStatus(t('facts_provider_disabled'), 'muted');
@@ -26792,9 +26783,9 @@
         let bestCode = '';
         let createdAmount = 0;
         let attemptedProviders = [];
-        canRetryHeaderRobot = false;
+        let autoRetried = false;
+        let effectiveFallback = useFallbackChain === true;
         setButtonBusy(robotButton, true);
-        if (useFallbackChain) setButtonBusy(robotRetryButton, true);
         setHeadingStatus(
           langText('1/3 Recherche du code-barres…', '1/3 Searching barcode...'),
           'info',
@@ -26802,13 +26793,37 @@
             `${langText('Produit', 'Product')}: ${productName}`,
             `${langText('Unité utilisée', 'Used unit')}: ${purchaseUnitName} (#${purchaseUnitId})`,
             `${langText('Fournisseurs configurés', 'Configured providers')}: ${configuredProviderOrder.map((id) => barcodeLookupProviderLabel(id)).join(' -> ') || t('default_na')}`,
-            `${langText('Mode', 'Mode')}: ${useFallbackChain ? langText('Relance avec simplification', 'Retry with simplification') : langText('Recherche standard', 'Standard lookup')}`,
+            `${langText('Mode', 'Mode')}: ${effectiveFallback ? langText('Relance avec simplification', 'Retry with simplification') : langText('Recherche standard', 'Standard lookup')}`,
           ]
         );
         try {
-          const lookup = useFallbackChain
-            ? await lookupBestBarcodeForProductNameFallbackChain(productName, settings, { limit: 14 })
-            : await lookupBestBarcodeForProductName(productName, settings);
+          let lookup = null;
+          if (effectiveFallback) {
+            lookup = await lookupBestBarcodeForProductNameFallbackChain(productName, settings, { limit: 14 });
+          } else {
+            try {
+              lookup = await lookupBestBarcodeForProductName(productName, settings);
+            } catch (firstError) {
+              const firstMsg = clean(firstError && firstError.message ? firstError.message : String(firstError));
+              if (!isLookupNotFoundMessage(firstMsg)) throw firstError;
+              autoRetried = true;
+              effectiveFallback = true;
+              setHeadingStatus(
+                langText(
+                  'Aucun résultat fiable en mode standard, relance simplifiée automatique…',
+                  'No reliable result in standard mode, running simplified retry automatically...'
+                ),
+                'info',
+                [
+                  `${langText('Produit', 'Product')}: ${productName}`,
+                  `${langText('Unité utilisée', 'Used unit')}: ${purchaseUnitName} (#${purchaseUnitId})`,
+                  `${langText('Fournisseurs configurés', 'Configured providers')}: ${configuredProviderOrder.map((id) => barcodeLookupProviderLabel(id)).join(' -> ') || t('default_na')}`,
+                  `${langText('Mode', 'Mode')}: ${langText('Relance simplifiée auto', 'Automatic simplified retry')}`,
+                ]
+              );
+              lookup = await lookupBestBarcodeForProductNameFallbackChain(productName, settings, { limit: 14 });
+            }
+          }
           const { best } = lookup;
           usedName = clean(lookup.usedName || '');
           bestName = clean(best && best.name ? best.name : '');
@@ -26851,9 +26866,6 @@
           shouldReload = true;
         } catch (error) {
           const msg = clean(error && error.message ? error.message : String(error));
-          if (!useFallbackChain && isLookupNotFoundMessage(msg)) {
-            canRetryHeaderRobot = true;
-          }
           finalError = msg || t('focus_unknown_error');
           setHeadingStatus(
             t('barcode_header_robot_api_error', { msg: finalError }),
@@ -26868,7 +26880,8 @@
           const detailLines = [
             `${langText('Produit', 'Product')}: ${productName}`,
             `${langText('ID produit', 'Product ID')}: ${productId}`,
-            `${langText('Mode', 'Mode')}: ${useFallbackChain ? langText('Relance simplifiée', 'Simplified retry') : langText('Standard', 'Standard')}`,
+            `${langText('Mode', 'Mode')}: ${effectiveFallback ? langText('Relance simplifiée', 'Simplified retry') : langText('Standard', 'Standard')}`,
+            `${langText('Relance auto', 'Auto retry')}: ${autoRetried ? 'ON' : 'OFF'}`,
             `${langText('Unité appliquée', 'Applied unit')}: ${purchaseUnitName} (#${purchaseUnitId})`,
             `${langText('Nom simplifié', 'Simplified name')}: ${usedName || t('default_na')}`,
             `${langText('Code trouvé', 'Found barcode')}: ${bestCode || t('default_na')}`,
@@ -26902,7 +26915,6 @@
             return;
           }
           setButtonBusy(robotButton, false);
-          setButtonBusy(robotRetryButton, false);
           refreshState();
         }
       };
@@ -26912,13 +26924,6 @@
         runHeaderRobotCreate(false);
       });
     }
-    if (robotRetryButton.dataset.factsBound !== '1') {
-      robotRetryButton.dataset.factsBound = '1';
-      robotRetryButton.addEventListener('click', async () => {
-        runHeaderRobotCreate(true);
-      });
-    }
-
     const nameInput = document.getElementById('name');
     if (nameInput && nameInput.dataset.factsHeaderBound !== '1') {
       nameInput.dataset.factsHeaderBound = '1';
@@ -27194,16 +27199,8 @@
     assistToggleButton.setAttribute('aria-pressed', 'false');
     assistToggleButton.innerHTML = '<i class="fa-solid fa-toggle-off"></i>';
 
-    const retryNameButton = document.createElement('button');
-    retryNameButton.type = 'button';
-    retryNameButton.className = 'btn btn-outline-secondary btn-sm grocy-off-btn-sm grocy-off-btn-icon d-none';
-    retryNameButton.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i>';
-    retryNameButton.title = langText('Relancer avec simplification du nom', 'Retry with simplified name');
-    retryNameButton.setAttribute('aria-label', retryNameButton.title);
-
     actions.appendChild(robotButton);
     actions.appendChild(assistToggleButton);
-    actions.appendChild(retryNameButton);
     label.appendChild(actions);
 
     const status = document.createElement('div');
@@ -27228,7 +27225,6 @@
       assistToggleButton.setAttribute('aria-label', `${t('barcode_autofill_assist_name')}: ${enabled ? 'ON' : 'OFF'}`);
     };
 
-    let canRetryWithNameFallback = false;
     const refreshState = () => {
       const parentMode = isProductParentModeEnabled();
       actions.classList.toggle('d-none', parentMode);
@@ -27239,8 +27235,6 @@
       const hasName = barcodeFormProductName(form) !== '';
       const settings = normalizeBarcodeLookupSettings(barcodeLookupSettings());
       robotButton.disabled = !hasName || settings.enabled !== true;
-      retryNameButton.classList.toggle('d-none', !canRetryWithNameFallback);
-      retryNameButton.disabled = robotButton.disabled;
       refreshAssistToggleUi();
     };
     form.__offBarcodeRefresh = refreshState;
@@ -27272,9 +27266,9 @@
       let usedName = '';
       let attemptedProviders = [];
       let matchedProductsCount = 0;
-      canRetryWithNameFallback = false;
+      let autoRetried = false;
+      let effectiveFallback = useFallbackChain === true;
       setButtonBusy(robotButton, true);
-      if (useFallbackChain) setButtonBusy(retryNameButton, true);
       const preface = autoRun ? `${t('barcode_autofill_assist_auto_run')} ` : '';
       setBarcodeAutofillStatus(
         status,
@@ -27282,21 +27276,46 @@
         'info',
         [
           `${langText('Produit', 'Product')}: ${productName}`,
-          `${langText('Mode', 'Mode')}: ${useFallbackChain ? langText('Relance simplifiée', 'Simplified retry') : langText('Standard', 'Standard')}`,
+          `${langText('Mode', 'Mode')}: ${effectiveFallback ? langText('Relance simplifiée', 'Simplified retry') : langText('Standard', 'Standard')}`,
           `${langText('Auto', 'Auto')}: ${autoRun ? 'ON' : 'OFF'}`,
           `${langText('Chaîne fournisseurs', 'Provider chain')}: ${orderLabel || t('default_na')}`,
         ]
       );
 
       try {
-        const lookup = useFallbackChain
-          ? await lookupBestBarcodeForProductNameFallbackChain(productName, settings, { limit: 14 })
-          : await fetchBarcodeLookupProductsByNameWithFallback(productName, settings);
+        let lookup = null;
+        if (effectiveFallback) {
+          lookup = await lookupBestBarcodeForProductNameFallbackChain(productName, settings, { limit: 14 });
+        } else {
+          try {
+            lookup = await fetchBarcodeLookupProductsByNameWithFallback(productName, settings);
+          } catch (firstError) {
+            const firstMsg = clean(firstError && firstError.message ? firstError.message : String(firstError));
+            if (!isLookupNotFoundMessage(firstMsg)) throw firstError;
+            autoRetried = true;
+            effectiveFallback = true;
+            setBarcodeAutofillStatus(
+              status,
+              langText(
+                'Aucun résultat fiable en mode standard, relance simplifiée automatique…',
+                'No reliable result in standard mode, running simplified retry automatically...'
+              ),
+              'info',
+              [
+                `${langText('Produit', 'Product')}: ${productName}`,
+                `${langText('Mode', 'Mode')}: ${langText('Relance simplifiée auto', 'Automatic simplified retry')}`,
+                `${langText('Auto', 'Auto')}: ${autoRun ? 'ON' : 'OFF'}`,
+                `${langText('Chaîne fournisseurs', 'Provider chain')}: ${orderLabel || t('default_na')}`,
+              ]
+            );
+            lookup = await lookupBestBarcodeForProductNameFallbackChain(productName, settings, { limit: 14 });
+          }
+        }
         matchedProductsCount = Array.isArray(lookup && lookup.products) ? lookup.products.length : 0;
         attemptedProviders = Array.isArray(lookup.attemptedProviders) && lookup.attemptedProviders.length > 0
           ? lookup.attemptedProviders
           : [];
-        const best = useFallbackChain
+        const best = effectiveFallback
           ? lookup.best
           : bestBarcodeLookupMatch(lookup.products, productName);
         usedName = clean(lookup.usedName || '');
@@ -27304,7 +27323,6 @@
           const attempted = Array.isArray(lookup.attemptedProviders) && lookup.attemptedProviders.length > 0
             ? lookup.attemptedProviders.map((providerId) => barcodeLookupProviderLabel(providerId)).join(' -> ')
             : lookup.providerLabel;
-          if (!useFallbackChain) canRetryWithNameFallback = true;
           finalError = langText(`Aucun code-barres fiable trouvé via ${attempted}.`, `No reliable barcode found via ${attempted}.`);
           setBarcodeAutofillStatus(
             status,
@@ -27326,7 +27344,6 @@
         const note = usedName && norm(usedName) !== norm(productName)
           ? langText(` | nom simplifié: ${usedName}`, ` | simplified name: ${usedName}`)
           : '';
-        canRetryWithNameFallback = false;
         setBarcodeAutofillStatus(
           status,
           langText(`Code-barres trouvé via ${attempted}: ${best.code} (${foundName}).${note}`, `Barcode found via ${attempted}: ${best.code} (${foundName}).${note}`),
@@ -27334,9 +27351,6 @@
         );
       } catch (error) {
         const msg = clean(error && error.message ? error.message : String(error));
-        if (!useFallbackChain && isLookupNotFoundMessage(msg)) {
-          canRetryWithNameFallback = true;
-        }
         finalError = msg || langText('erreur inconnue', 'unknown error');
         setBarcodeAutofillStatus(
           status,
@@ -27346,7 +27360,8 @@
       } finally {
         const detailLines = [
           `${langText('Produit', 'Product')}: ${productName}`,
-          `${langText('Mode', 'Mode')}: ${useFallbackChain ? langText('Relance simplifiée', 'Simplified retry') : langText('Standard', 'Standard')}`,
+          `${langText('Mode', 'Mode')}: ${effectiveFallback ? langText('Relance simplifiée', 'Simplified retry') : langText('Standard', 'Standard')}`,
+          `${langText('Relance auto', 'Auto retry')}: ${autoRetried ? 'ON' : 'OFF'}`,
           `${langText('Auto', 'Auto')}: ${autoRun ? 'ON' : 'OFF'}`,
           `${langText('Code trouvé', 'Found barcode')}: ${foundCode || t('default_na')}`,
           `${langText('Nom source', 'Source name')}: ${foundName || t('default_na')}`,
@@ -27364,17 +27379,12 @@
           detailLines
         );
         setButtonBusy(robotButton, false);
-        setButtonBusy(retryNameButton, false);
         refreshState();
       }
     };
 
     robotButton.addEventListener('click', () => {
       runRobotLookup(false, false);
-    });
-
-    retryNameButton.addEventListener('click', () => {
-      runRobotLookup(false, true);
     });
 
     const runAutoAssistIfEnabled = () => {

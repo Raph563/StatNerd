@@ -20,6 +20,10 @@ The format follows Keep a Changelog and semantic versioning.
 - GitHub workflow release validation now compares `addon/VERSION` with the base tag version.
 - GitHub workflow now marks alpha/beta tags as prereleases automatically.
 
+### Fixed
+- Barcode robots now auto-retry with simplified product names when standard lookup fails, without showing a separate retry button.
+- Parent source checkbox persistence now writes only checked state (`1`) and no longer writes unchecked (`0`) automatically.
+
 ## [1.2.0] - 2026-02-14
 
 ### Added
