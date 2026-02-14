@@ -5915,6 +5915,11 @@
         gap: 0.75rem;
         align-items: start;
       }
+      #dash_chart_overlay .dash-focus-local-left {
+        display: grid;
+        gap: 0.46rem;
+        align-self: start;
+      }
       #dash_chart_overlay .dash-focus-local-logo {
         width: 100%;
         min-height: 90px;
@@ -5927,6 +5932,17 @@
         background: rgba(13,18,24,0.5);
         overflow: hidden;
       }
+      #dash_chart_overlay .dash-focus-local-logo.is-clickable {
+        cursor: pointer;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+      }
+      #dash_chart_overlay .dash-focus-local-logo.is-clickable:hover,
+      #dash_chart_overlay .dash-focus-local-logo.is-clickable:focus {
+        border-color: rgba(13,110,253,0.76);
+        box-shadow: 0 10px 20px rgba(13,110,253,0.2);
+        transform: translateY(-1px);
+      }
       #dash_chart_overlay .dash-focus-local-logo img {
         max-width: 100%;
         max-height: 140px;
@@ -5938,12 +5954,17 @@
         font-size: 1.2rem;
         color: rgba(220,235,255,0.85);
       }
-      #dash_chart_overlay .dash-focus-local-logo.is-bucket-list {
-        min-height: 90px;
-        max-height: none;
-        overflow: visible;
-        padding: 0.2rem;
-        background: linear-gradient(145deg, rgba(9,14,22,0.6), rgba(12,18,30,0.45));
+      #dash_chart_overlay .dash-focus-local-products {
+        max-height: 0;
+        opacity: 0;
+        transform: translateY(-10px);
+        overflow: hidden;
+        transition: max-height 0.28s ease, opacity 0.24s ease, transform 0.24s ease;
+      }
+      #dash_chart_overlay .dash-focus-local-products.is-open {
+        max-height: 28rem;
+        opacity: 1;
+        transform: translateY(0);
       }
       #dash_chart_overlay .dash-focus-bucket-list {
         display: grid;
@@ -6216,8 +6237,8 @@
         #dash_chart_overlay .dash-focus-local-logo {
           max-width: 180px;
         }
-        #dash_chart_overlay .dash-focus-local-logo.is-bucket-list {
-          max-width: none;
+        #dash_chart_overlay .dash-focus-local-products.is-open {
+          max-height: 16rem;
         }
         #dash_chart_overlay .dash-focus-local-stat {
           grid-template-columns: 1fr;
@@ -12855,7 +12876,10 @@
               </div>
             </div>
             <div class="dash-focus-local">
-              <div id="dash_chart_overlay_focus_local_logo" class="dash-focus-local-logo"></div>
+              <div class="dash-focus-local-left">
+                <div id="dash_chart_overlay_focus_local_logo" class="dash-focus-local-logo"></div>
+                <div id="dash_chart_overlay_focus_local_products" class="dash-focus-local-products"></div>
+              </div>
               <div class="dash-focus-local-main">
                 <div id="dash_chart_overlay_focus_local_meta" class="small text-muted mb-1">${t('overlay_focus_hint')}</div>
                 <div id="dash_chart_overlay_focus_local_stats" class="small"></div>
@@ -12891,11 +12915,11 @@
     document.getElementById('dash_chart_overlay_details_toggle')?.addEventListener('click', () => {
       setOverlayDetailsExpanded(!S.overlayDetailsExpanded);
     });
-    document.getElementById('dash_chart_overlay_focus_local_logo')?.addEventListener('click', (event) => {
+    const onFocusLocalProductsClick = (event) => {
       const target = event && event.target;
       if (!target || typeof target.closest !== 'function') return;
       const baseFocus = S.overlayFocus;
-      if (!baseFocus || clean(baseFocus.type || '') !== 'bucket') return;
+      if (!baseFocus || !focusSupportsLocalProductList(baseFocus)) return;
 
       const expandBtn = target.closest('[data-focus-bucket-expand]');
       if (expandBtn) {
@@ -12918,8 +12942,26 @@
       event.preventDefault();
       const productId = num(productBtn.getAttribute('data-focus-bucket-product-id') || 0);
       if (productId <= 0) return;
-      updateOverlayBucketUiState(baseFocus, { selectedProductId: productId });
+      updateOverlayBucketUiState(baseFocus, { expanded: true, selectedProductId: productId });
       renderOverlayFocusLocalSection(baseFocus);
+    };
+    document.getElementById('dash_chart_overlay_focus_local_logo')?.addEventListener('click', (event) => {
+      const baseFocus = S.overlayFocus;
+      if (!baseFocus || !focusSupportsLocalProductList(baseFocus)) return;
+      const target = event && event.target;
+      if (target && typeof target.closest === 'function') {
+        const hasActionButton = target.closest('[data-focus-bucket-expand], [data-focus-bucket-show-all], [data-focus-bucket-product-id]');
+        if (hasActionButton) {
+          onFocusLocalProductsClick(event);
+          return;
+        }
+      }
+      const ui = ensureOverlayBucketUiState(baseFocus) || { expanded: false };
+      updateOverlayBucketUiState(baseFocus, { expanded: !(ui.expanded === true), showAll: false });
+      renderOverlayFocusLocalSection(baseFocus);
+    });
+    document.getElementById('dash_chart_overlay_focus_local_products')?.addEventListener('click', (event) => {
+      onFocusLocalProductsClick(event);
     });
     setOverlayDetailsExpanded(false);
     const bindOverlayIndexedInteractions = (rootId, selector, syncDetail) => {
@@ -13101,7 +13143,16 @@
     const focusStats = document.getElementById('dash_chart_overlay_focus_local_stats');
     if (focusStats) focusStats.innerHTML = '';
     const focusLogo = document.getElementById('dash_chart_overlay_focus_local_logo');
-    if (focusLogo) focusLogo.innerHTML = '';
+    if (focusLogo) {
+      focusLogo.innerHTML = '';
+      focusLogo.classList.remove('is-clickable');
+      focusLogo.removeAttribute('title');
+    }
+    const focusProducts = document.getElementById('dash_chart_overlay_focus_local_products');
+    if (focusProducts) {
+      focusProducts.innerHTML = '';
+      focusProducts.classList.remove('is-open');
+    }
     const focusAi = document.getElementById('dash_chart_overlay_focus_ai_body');
     if (focusAi) focusAi.textContent = t('overlay_ai_waiting');
     const focusAiState = document.getElementById('dash_chart_overlay_focus_ai_state');
@@ -20041,13 +20092,21 @@
     return label || title || t('overlay_focus_hint');
   }
 
+  function focusSupportsLocalProductList(focusInput) {
+    const focus = focusInput && typeof focusInput === 'object' ? focusInput : null;
+    if (!focus) return false;
+    const type = clean(focus.type || '');
+    return type === 'bucket' || type === 'group' || type === 'brand';
+  }
+
   function overlayBucketFocusKey(focusInput) {
     const focus = focusInput && typeof focusInput === 'object' ? focusInput : null;
-    if (!focus || clean(focus.type || '') !== 'bucket') return '';
+    if (!focus || !focusSupportsLocalProductList(focus)) return '';
     const chartId = clean(focus.chartId || '');
+    const type = clean(focus.type || '');
     const label = norm(clean(focus.label || ''));
     if (!chartId || !label) return '';
-    return `${chartId}|${label}`;
+    return `${chartId}|${type}|${label}`;
   }
 
   function ensureOverlayBucketUiState(focusInput) {
@@ -20084,10 +20143,54 @@
 
   function overlayBucketRowsForFocus(focusInput) {
     const focus = focusInput && typeof focusInput === 'object' ? focusInput : null;
-    if (!focus || clean(focus.type || '') !== 'bucket') return { rows: [], total: 0 };
-    const bucket = hoverPreviewRowsByBucket(clean(focus.chartId || ''), clean(focus.label || ''), 0);
-    const rows = Array.isArray(bucket && bucket.allRows) ? bucket.allRows : [];
-    const total = Math.max(rows.length, Math.floor(num(bucket && bucket.total)));
+    if (!focus || !focusSupportsLocalProductList(focus)) return { rows: [], total: 0 };
+
+    const chartId = clean(focus.chartId || '');
+    const type = clean(focus.type || '');
+    const label = clean(focus.label || '');
+    const pref = getChartPref(chartId);
+    let rows = [];
+    let total = 0;
+
+    if (type === 'bucket') {
+      const bucket = hoverPreviewRowsByBucket(chartId, label, 0);
+      rows = Array.isArray(bucket && bucket.allRows) ? bucket.allRows : [];
+      total = Math.max(rows.length, Math.floor(num(bucket && bucket.total)));
+      return { rows, total };
+    }
+
+    const facetType = type === 'brand' ? 'brand' : 'group';
+    const allFacetRows = hoverPreviewFacetRows(facetType, label);
+    total = Array.isArray(allFacetRows) ? allFacetRows.length : 0;
+    if (!total) return { rows: [], total: 0 };
+
+    const metricCfg = hoverFacetMetricConfig(facetType, chartId);
+    const computeMetric = metricCfg && typeof metricCfg.computeRowMetric === 'function'
+      ? metricCfg.computeRowMetric
+      : ((row) => hoverPurchaseScoreForRow(row));
+    const formatMetric = metricCfg && typeof metricCfg.formatMetric === 'function'
+      ? metricCfg.formatMetric
+      : ((metric) => fmt(metric, 2));
+    const metricLabel = clean(metricCfg && metricCfg.metricLabel ? metricCfg.metricLabel : '');
+    const ordered = allFacetRows
+      .map((row) => ({ row, metric: num(computeMetric(row)) }))
+      .sort((a, b) => {
+        if (pref.sort === 'asc' && a.metric !== b.metric) return a.metric - b.metric;
+        if (pref.sort !== 'asc' && b.metric !== a.metric) return b.metric - a.metric;
+        const aValue = num(a && a.row && a.row.value);
+        const bValue = num(b && b.row && b.row.value);
+        if (bValue !== aValue) return bValue - aValue;
+        return clean(a && a.row && a.row.name ? a.row.name : '')
+          .localeCompare(clean(b && b.row && b.row.name ? b.row.name : ''), undefined, { sensitivity: 'base' });
+      })
+      .map((entry) => ({
+        ...entry.row,
+        __focusMetric: num(entry.metric),
+        __focusMetricText: clean(formatMetric(entry.metric, entry.row) || ''),
+        __focusMetricLabel: metricLabel,
+      }));
+
+    rows = ordered;
     return { rows, total };
   }
 
@@ -20125,7 +20228,7 @@
 
   function resolveOverlayLocalDisplayFocus(focusInput) {
     const focus = focusInput && typeof focusInput === 'object' ? focusInput : null;
-    if (!focus || clean(focus.type || '') !== 'bucket') return focus;
+    if (!focus || !focusSupportsLocalProductList(focus)) return focus;
     const ui = ensureOverlayBucketUiState(focus);
     if (!ui || num(ui.selectedProductId) <= 0) return focus;
     const bucketRows = overlayBucketRowsForFocus(focus);
@@ -20152,6 +20255,11 @@
   function focusBucketItemMetaText(rowInput) {
     const row = rowInput && typeof rowInput === 'object' ? rowInput : {};
     const parts = [];
+    const metricText = clean(row.__focusMetricText || '');
+    const metricLabel = clean(row.__focusMetricLabel || '');
+    if (metricText) {
+      parts.push(metricLabel ? `${metricLabel}: ${metricText}` : metricText);
+    }
     const dueText = formatDueDate(row.due || null);
     if (dueText && dueText !== t('due_none')) parts.push(dueText);
     const price = hoverPreviewRowPrice(row);
@@ -20161,17 +20269,17 @@
 
   function focusBucketListHtml(focusInput) {
     const focus = focusInput && typeof focusInput === 'object' ? focusInput : null;
-    if (!focus || clean(focus.type || '') !== 'bucket') return focusLocalLogoHtml(focus);
+    if (!focus || !focusSupportsLocalProductList(focus)) return '';
 
     const bucket = overlayBucketRowsForFocus(focus);
     const allRows = Array.isArray(bucket.rows) ? bucket.rows : [];
-    if (!allRows.length) return focusLocalLogoHtml(focus);
+    if (!allRows.length) return '';
 
     const ui = ensureOverlayBucketUiState(focus) || { expanded: false, showAll: false, selectedProductId: 0 };
     const expanded = ui.expanded === true;
     const showAll = expanded && ui.showAll === true;
     const total = Math.max(allRows.length, Math.floor(num(bucket.total)));
-    const visibleLimit = showAll ? allRows.length : (expanded ? Math.min(5, allRows.length) : 1);
+    const visibleLimit = showAll ? allRows.length : (expanded ? Math.min(5, allRows.length) : 0);
     const visibleRows = allRows.slice(0, visibleLimit);
     const canExpand = allRows.length > 1;
     const canShowAll = expanded && !showAll && allRows.length > 5;
@@ -20181,41 +20289,16 @@
     const rowsHtml = visibleRows.map((row, idx) => {
       const productId = num(row && row.id);
       const name = clean(row && row.name ? row.name : t('default_product'));
-      const isCollapsedPrimary = idx === 0 && !expanded;
-      const selectable = !isCollapsedPrimary && productId > 0;
+      const selectable = productId > 0;
       const isSelected = selectedProductId > 0 && productId > 0 && selectedProductId === productId;
-      const cascadeClass = expanded && idx > 0 ? ' is-cascade' : '';
+      const cascadeClass = expanded ? ' is-cascade' : '';
       const selectedClass = isSelected ? ' is-selected' : '';
       const primaryClass = idx === 0 ? ' is-primary' : '';
-      const expandClass = (idx === 0 && !expanded && canExpand) ? ' has-expand' : '';
+      const expandClass = '';
       const metaText = focusBucketItemMetaText(row);
       const delayMs = Math.min(420, idx * 65);
-      const showMoreButton = canShowAll && idx === (visibleRows.length - 1)
-        ? `
-          <button
-            type="button"
-            class="dash-focus-bucket-show-all"
-            data-focus-bucket-show-all="1"
-            title="${escapeHtml(t('overlay_focus_bucket_show_more'))}"
-            aria-label="${escapeHtml(t('overlay_focus_bucket_show_more'))}"
-          >
-            ${escapeHtml(t('overlay_focus_bucket_show_more'))}${hiddenCount > 0 ? ` +${escapeHtml(fmt(hiddenCount, 0))}` : ''}
-          </button>
-        `
-        : '';
-      const seeMoreButton = (idx === 0 && !expanded && canExpand)
-        ? `
-          <button
-            type="button"
-            class="dash-focus-bucket-see-more"
-            data-focus-bucket-expand="1"
-            title="${escapeHtml(t('overlay_focus_bucket_see_more'))}"
-            aria-label="${escapeHtml(t('overlay_focus_bucket_see_more'))}"
-          >
-            ${escapeHtml(t('overlay_focus_bucket_see_more'))}
-          </button>
-        `
-        : '';
+      const showMoreButton = '';
+      const seeMoreButton = '';
       return `
         <div class="dash-focus-bucket-item${primaryClass}${selectedClass}${cascadeClass}${expandClass}" style="--dash-cascade-delay:${delayMs}ms;">
           <button
@@ -20238,13 +20321,42 @@
       `;
     }).join('');
 
+    const showAllRowHtml = canShowAll
+        ? `
+          <button
+            type="button"
+            class="btn btn-outline-info btn-sm py-0 px-2 mt-1"
+            data-focus-bucket-show-all="1"
+            title="${escapeHtml(t('overlay_focus_bucket_show_more'))}"
+            aria-label="${escapeHtml(t('overlay_focus_bucket_show_more'))}"
+          >
+            ${escapeHtml(t('overlay_focus_bucket_show_more'))}${hiddenCount > 0 ? ` +${escapeHtml(fmt(hiddenCount, 0))}` : ''}
+          </button>
+        `
+        : '';
+
     const classes = [
       'dash-focus-bucket-list',
       expanded ? 'is-expanded' : '',
       showAll ? 'is-scrollable' : '',
     ].filter(Boolean).join(' ');
 
-    return `<div class="${classes}" data-focus-bucket-list="1">${rowsHtml}</div>`;
+    if (!expanded && canExpand) {
+      return `
+        <div class="${classes}" data-focus-bucket-list="1">
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm py-0 px-2"
+            data-focus-bucket-expand="1"
+            title="${escapeHtml(t('overlay_focus_bucket_see_more'))}"
+            aria-label="${escapeHtml(t('overlay_focus_bucket_see_more'))}"
+          >
+            ${escapeHtml(t('overlay_focus_bucket_see_more'))}
+          </button>
+        </div>
+      `;
+    }
+    return `<div class="${classes}" data-focus-bucket-list="1">${rowsHtml}${showAllRowHtml}</div>`;
   }
 
   function resolveFocusQuantityMode(focus, requestedModeInput = 'auto') {
@@ -20501,10 +20613,38 @@
     });
   }
 
+  function focusCriteriaText(focusInput) {
+    const focus = focusInput && typeof focusInput === 'object' ? focusInput : null;
+    if (!focus) return '';
+    const chartId = clean(focus.chartId || '');
+    const order = getChartPref(chartId).sort === 'asc'
+      ? langText('Plus faibles d’abord', 'Lowest first')
+      : langText('Plus forts d’abord', 'Highest first');
+    if (chartId === 'g_val') return `${langText('Valeur stock', 'Stock value')} (${order})`;
+    if (chartId === 'g_qty') return `${langText('Quantité', 'Quantity')} (${order})`;
+    if (chartId === 'g_cal') return `${langText('Calories', 'Calories')} (${order})`;
+    if (chartId === 'brand_price') return `${langText('Prix unitaire', 'Unit price')} (${order})`;
+    if (chartId === 'brand_rel') return `${langText('Valeur stock', 'Stock value')} (${order})`;
+    if (chartId === 'risk') return langText('Priorité alerte', 'Alert priority');
+    if (chartId === 'due') return langText('Proximité échéance', 'Due-date proximity');
+    return '';
+  }
+
   function focusLocalStatsHtml(focus) {
     if (!focus) return `<span class="text-muted">${escapeHtml(t('overlay_focus_hint'))}</span>`;
     const rows = [];
     rows.push({ type: 'plain', key: t('meta_element'), value: clean(focus.label || t('default_na')) });
+    if (focusSupportsLocalProductList(focus)) {
+      const criteria = focusCriteriaText(focus);
+      if (criteria) rows.push({ type: 'plain', key: langText('Critère', 'Criterion'), value: criteria });
+      if (num(focus.productId) <= 0) {
+        rows.push({
+          type: 'plain',
+          key: langText('Sélection', 'Selection'),
+          value: langText('Groupe global (aucun produit sélectionné)', 'Group summary (no product selected)'),
+        });
+      }
+    }
     if (num(focus.n) > 0) rows.push({ type: 'plain', key: t('kpi_products'), value: fmtProducts(num(focus.n)) });
     if (focus.value !== undefined && num(focus.value) > 0) rows.push({ type: 'plain', key: t('meta_value'), value: fmtMoney(num(focus.value)) });
     if (focus.avgPrice !== undefined && num(focus.avgPrice) > 0) rows.push({ type: 'plain', key: t('meta_avg_price'), value: fmtMoney(num(focus.avgPrice)) });
@@ -20584,21 +20724,31 @@
     const localLinksEl = document.getElementById('dash_chart_overlay_focus_local_links');
     const localStatsEl = document.getElementById('dash_chart_overlay_focus_local_stats');
     const localLogoEl = document.getElementById('dash_chart_overlay_focus_local_logo');
+    const localProductsEl = document.getElementById('dash_chart_overlay_focus_local_products');
     const productBtn = document.getElementById('dash_focus_open_product');
-    if (!localMetaEl || !localLinksEl || !localStatsEl || !localLogoEl) return false;
+    if (!localMetaEl || !localLinksEl || !localStatsEl || !localLogoEl || !localProductsEl) return false;
 
     const displayFocus = resolveOverlayLocalDisplayFocus(focus) || focus;
+    const canListProducts = focusSupportsLocalProductList(focus);
+    const listUiState = canListProducts
+      ? (ensureOverlayBucketUiState(focus) || { expanded: false, showAll: false, selectedProductId: 0 })
+      : null;
+    const isExpanded = !!(listUiState && listUiState.expanded);
+    const productsHtml = canListProducts ? focusBucketListHtml(focus) : '';
     localMetaEl.textContent = focusLocalMetaText(displayFocus);
     localStatsEl.innerHTML = focusLocalStatsHtml(displayFocus);
     bindOverlayFocusQtyModeControls(localStatsEl, displayFocus);
     bindOverlayFocusEquivalentControls(localStatsEl, displayFocus);
     localLinksEl.innerHTML = focusStockLinksHtml(displayFocus);
 
-    const isBucketFocus = clean(focus && focus.type ? focus.type : '') === 'bucket';
-    localLogoEl.classList.toggle('is-bucket-list', isBucketFocus);
-    localLogoEl.innerHTML = isBucketFocus
-      ? focusBucketListHtml(focus)
-      : focusLocalLogoHtml(displayFocus);
+    localLogoEl.classList.toggle('is-clickable', canListProducts);
+    localLogoEl.title = canListProducts
+      ? (isExpanded ? t('overlay_details_collapse') : t('overlay_focus_bucket_see_more'))
+      : '';
+    localLogoEl.innerHTML = focusLocalLogoHtml(focus || displayFocus);
+
+    localProductsEl.classList.toggle('is-open', canListProducts && isExpanded && !!productsHtml);
+    localProductsEl.innerHTML = (canListProducts && isExpanded) ? productsHtml : '';
 
     if (productBtn) {
       if (num(displayFocus && displayFocus.productId) > 0) productBtn.classList.remove('d-none');
@@ -20763,7 +20913,7 @@
     if (!ctx || index < 0) return;
     const focus = buildFocusFromSelection(ctx.chartId, index, ctx.contextData || [], ctx.metrics || S.lastMetrics);
     if (!focus) return;
-    if (clean(focus.type || '') === 'bucket') {
+    if (focusSupportsLocalProductList(focus)) {
       updateOverlayBucketUiState(focus, { expanded: false, showAll: false, selectedProductId: 0 });
     }
     renderOverlayFocusCard(focus, false, trigger);
@@ -22268,7 +22418,16 @@
         const focusStats = document.getElementById('dash_chart_overlay_focus_local_stats');
         if (focusStats) focusStats.innerHTML = '';
         const focusLogo = document.getElementById('dash_chart_overlay_focus_local_logo');
-        if (focusLogo) focusLogo.innerHTML = '';
+        if (focusLogo) {
+          focusLogo.innerHTML = '';
+          focusLogo.classList.remove('is-clickable');
+          focusLogo.removeAttribute('title');
+        }
+        const focusProducts = document.getElementById('dash_chart_overlay_focus_local_products');
+        if (focusProducts) {
+          focusProducts.innerHTML = '';
+          focusProducts.classList.remove('is-open');
+        }
         const focusAi = document.getElementById('dash_chart_overlay_focus_ai_body');
         if (focusAi) focusAi.textContent = t('overlay_ai_waiting');
         const focusAiState = document.getElementById('dash_chart_overlay_focus_ai_state');

@@ -8,6 +8,18 @@ The format follows Keep a Changelog and semantic versioning.
 
 - No entries yet.
 
+## [1.2.1-alpha.9] - 2026-02-14
+
+### Added
+- Local focus panel now supports product list unfolding from the left visual block for group-related focuses (group, brand, due/risk bucket): click the image block to unfold.
+- Unfolded list shows top 5 products for the selected focus with clickable items that update right-side local details immediately.
+- Added an `Afficher plus` action at the end of the unfolded list to switch to a scrollable full list.
+
+### Changed
+- Local focus layout reorganized to keep the visual/logo block on top-left and render the product list directly below it with slide animation.
+- Right-side local stats now include a clearer group criterion summary before any product is selected.
+- Group/brand local product list ordering now follows chart sort mode (highest-first or lowest-first).
+
 ## [1.2.1-alpha.8] - 2026-02-14
 
 ### Fixed
