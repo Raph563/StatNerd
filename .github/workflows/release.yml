@@ -38,7 +38,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          ARCHIVE="dist/grocy-addon-${GITHUB_REF_NAME}.zip"
+          ARCHIVE="dist/statnerd-addon-${GITHUB_REF_NAME}.zip"
           zip -r "$ARCHIVE" addon
           echo "ARCHIVE=$ARCHIVE" >> "$GITHUB_ENV"
 
@@ -48,3 +48,4 @@ jobs:
           generate_release_notes: true
           prerelease: ${{ env.IS_PRERELEASE == 'true' }}
           files: ${{ env.ARCHIVE }}
+

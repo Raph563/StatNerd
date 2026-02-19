@@ -13,7 +13,7 @@ config/data/settingoverrides/
 config/log/
 config/keys/
 config/data/plugins/
-config/data/grocy-addon-state.json
+config/data/statnerd-addon-state.json
 config/data/custom_js.html.bak_addon_*
 
 # Local custom runtime script (source of truth is addon/dist/custom_js.html)

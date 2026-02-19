@@ -23,12 +23,12 @@ if ([string]::IsNullOrWhiteSpace($GrocyConfigPath))
 $dataDir = Join-Path $GrocyConfigPath 'data'
 $payloadFileName = if ($env:ADDON_PAYLOAD_FILENAME) { $env:ADDON_PAYLOAD_FILENAME } else { 'custom_js_nerdstats.html' }
 $activeFileName = if ($env:ACTIVE_TARGET_FILENAME) { $env:ACTIVE_TARGET_FILENAME } else { 'custom_js.html' }
-$composeSourcesRaw = if ($env:COMPOSE_SOURCES) { $env:COMPOSE_SOURCES } else { 'custom_js_nerdstats.html,custom_js_product_helper.html' }
+$composeSourcesRaw = if ($env:COMPOSE_SOURCES) { $env:COMPOSE_SOURCES } else { 'custom_js_nerdcore.html,custom_js_nerdstats.html,custom_js_product_helper.html' }
 $composeEnabled = if ($env:COMPOSE_ENABLED) { $env:COMPOSE_ENABLED } else { '1' }
 
 $targetFile = Join-Path $dataDir $payloadFileName
 $activeFile = Join-Path $dataDir $activeFileName
-$stateFile = Join-Path $dataDir 'grocy-addon-state.json'
+$stateFile = Join-Path $dataDir 'statnerd-addon-state.json'
 
 function Compose-CustomJs {
 	param(
@@ -43,7 +43,7 @@ function Compose-CustomJs {
 	}
 
 	$sources = @($ComposeSourcesRaw.Split(',') | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-	$parts = @('<!-- managed by uninstall.ps1 (Grocy) -->')
+	$parts = @('<!-- managed by uninstall.ps1 (StatNerd) -->')
 	$added = 0
 
 	foreach ($src in $sources)
@@ -132,3 +132,4 @@ if (Test-Path $activeFile)
 
 Write-Host "Addon retire: $targetFile"
 Write-Host "Aucun autre addon actif, fichier supprime: $activeFile"
+

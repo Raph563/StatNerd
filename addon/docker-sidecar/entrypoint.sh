@@ -4,17 +4,20 @@ set -eu
 GROCY_CONFIG_PATH="${GROCY_CONFIG_PATH:-/grocy-config}"
 ADDON_SOURCE="${ADDON_SOURCE:-/addon/dist/custom_js.html}"
 BACKUP_ENABLED="${BACKUP_ENABLED:-true}"
-STATE_FILENAME="${STATE_FILENAME:-grocy-addon-state.json}"
+STATE_FILENAME="${STATE_FILENAME:-statnerd-addon-state.json}"
 ADDON_TARGET_FILENAME="${ADDON_TARGET_FILENAME:-custom_js_nerdstats.html}"
 ACTIVE_TARGET_FILENAME="${ACTIVE_TARGET_FILENAME:-custom_js.html}"
-COMPOSE_SOURCES="${COMPOSE_SOURCES:-custom_js_nerdstats.html,custom_js_product_helper.html}"
+COMPOSE_SOURCES="${COMPOSE_SOURCES:-custom_js_nerdcore.html,custom_js_nerdstats.html,custom_js_product_helper.html}"
 COMPOSE_ENABLED="${COMPOSE_ENABLED:-true}"
+REQUIRE_NERDCORE="${REQUIRE_NERDCORE:-true}"
+NERDCORE_FILENAME="${NERDCORE_FILENAME:-custom_js_nerdcore.html}"
 KEEP_ALIVE="${KEEP_ALIVE:-false}"
 
 DATA_DIR="${GROCY_CONFIG_PATH%/}/data"
 TARGET_FILE="$DATA_DIR/$ADDON_TARGET_FILENAME"
 ACTIVE_FILE="$DATA_DIR/$ACTIVE_TARGET_FILENAME"
 STATE_FILE="$DATA_DIR/$STATE_FILENAME"
+NERDCORE_FILE="$DATA_DIR/$NERDCORE_FILENAME"
 
 if [ ! -d "$DATA_DIR" ]; then
 	echo "ERREUR: dossier data introuvable: $DATA_DIR" >&2
@@ -24,6 +27,13 @@ fi
 if [ ! -f "$ADDON_SOURCE" ]; then
 	echo "ERREUR: addon source introuvable: $ADDON_SOURCE" >&2
 	exit 1
+fi
+
+if [ "$REQUIRE_NERDCORE" = "true" ] || [ "$REQUIRE_NERDCORE" = "1" ]; then
+	if [ ! -s "$NERDCORE_FILE" ]; then
+		echo "ERREUR: NerdCore requis. Fichier manquant: $NERDCORE_FILE" >&2
+		exit 1
+	fi
 fi
 
 BACKUP_FILE=""
@@ -44,7 +54,7 @@ compose_custom_js() {
 	fi
 	TMP_FILE="$(mktemp "${TMPDIR:-/tmp}/grocy-addon-sidecar-compose.XXXXXX")"
 	trap 'rm -f "$TMP_FILE"' EXIT
-	printf '<!-- managed by docker-sidecar entrypoint (Grocy) -->\n' > "$TMP_FILE"
+	printf '<!-- managed by docker-sidecar entrypoint (StatNerd) -->\n' > "$TMP_FILE"
 	ADDED=0
 	OLD_IFS="$IFS"
 	IFS=','
@@ -96,3 +106,4 @@ if [ "$KEEP_ALIVE" = "true" ]; then
 	echo "Mode KEEP_ALIVE actif."
 	tail -f /dev/null
 fi
+

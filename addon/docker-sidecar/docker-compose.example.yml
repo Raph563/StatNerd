@@ -23,12 +23,15 @@ services:
       - GROCY_CONFIG_PATH=/grocy-config
       - ADDON_SOURCE=/addon/dist/custom_js.html
       - BACKUP_ENABLED=true
-      - STATE_FILENAME=grocy-addon-state.json
+      - STATE_FILENAME=statnerd-addon-state.json
       - ADDON_TARGET_FILENAME=custom_js_nerdstats.html
       - ACTIVE_TARGET_FILENAME=custom_js.html
-      - COMPOSE_SOURCES=custom_js_nerdstats.html,custom_js_product_helper.html
+      - COMPOSE_SOURCES=custom_js_nerdcore.html,custom_js_nerdstats.html,custom_js_product_helper.html
       - COMPOSE_ENABLED=true
+      - REQUIRE_NERDCORE=true
+      - NERDCORE_FILENAME=custom_js_nerdcore.html
     volumes:
       - ../../config:/grocy-config
       - ../dist:/addon/dist:ro
     restart: "no"
+

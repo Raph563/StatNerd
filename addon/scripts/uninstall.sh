@@ -17,12 +17,12 @@ fi
 DATA_DIR="$CONFIG_PATH/data"
 PAYLOAD_FILE_NAME="${ADDON_PAYLOAD_FILENAME:-custom_js_nerdstats.html}"
 ACTIVE_FILE_NAME="${ACTIVE_TARGET_FILENAME:-custom_js.html}"
-COMPOSE_SOURCES="${COMPOSE_SOURCES:-custom_js_nerdstats.html,custom_js_product_helper.html}"
+COMPOSE_SOURCES="${COMPOSE_SOURCES:-custom_js_nerdcore.html,custom_js_nerdstats.html,custom_js_product_helper.html}"
 COMPOSE_ENABLED="${COMPOSE_ENABLED:-1}"
 
 TARGET_FILE="$DATA_DIR/$PAYLOAD_FILE_NAME"
 ACTIVE_FILE="$DATA_DIR/$ACTIVE_FILE_NAME"
-STATE_FILE="$DATA_DIR/grocy-addon-state.json"
+STATE_FILE="$DATA_DIR/statnerd-addon-state.json"
 
 compose_custom_js() {
 	if [ "$COMPOSE_ENABLED" = "0" ] || [ "$COMPOSE_ENABLED" = "false" ]; then
@@ -31,7 +31,7 @@ compose_custom_js() {
 
 	TMP_FILE="$(mktemp "${TMPDIR:-/tmp}/grocy-addon-compose.XXXXXX")"
 	trap 'rm -f "$TMP_FILE"' EXIT
-	printf '<!-- managed by uninstall.sh (Grocy) -->\n' > "$TMP_FILE"
+	printf '<!-- managed by uninstall.sh (StatNerd) -->\n' > "$TMP_FILE"
 
 	ADDED=0
 	OLD_IFS="$IFS"
@@ -98,3 +98,4 @@ fi
 rm -f "$ACTIVE_FILE"
 echo "Addon retire: $TARGET_FILE"
 echo "Aucun autre addon actif, fichier supprime: $ACTIVE_FILE"
+

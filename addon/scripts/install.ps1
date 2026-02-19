@@ -30,12 +30,14 @@ if ([string]::IsNullOrWhiteSpace($GrocyConfigPath))
 $dataDir = Join-Path $GrocyConfigPath 'data'
 $payloadFileName = if ($env:ADDON_PAYLOAD_FILENAME) { $env:ADDON_PAYLOAD_FILENAME } else { 'custom_js_nerdstats.html' }
 $activeFileName = if ($env:ACTIVE_TARGET_FILENAME) { $env:ACTIVE_TARGET_FILENAME } else { 'custom_js.html' }
-$composeSourcesRaw = if ($env:COMPOSE_SOURCES) { $env:COMPOSE_SOURCES } else { 'custom_js_nerdstats.html,custom_js_product_helper.html' }
+$composeSourcesRaw = if ($env:COMPOSE_SOURCES) { $env:COMPOSE_SOURCES } else { 'custom_js_nerdcore.html,custom_js_nerdstats.html,custom_js_product_helper.html' }
 $composeEnabled = if ($env:COMPOSE_ENABLED) { $env:COMPOSE_ENABLED } else { '1' }
+$nerdCoreFileName = if ($env:NERDCORE_FILENAME) { $env:NERDCORE_FILENAME } else { 'custom_js_nerdcore.html' }
 
 $targetFile = Join-Path $dataDir $payloadFileName
 $activeFile = Join-Path $dataDir $activeFileName
-$stateFile = Join-Path $dataDir 'grocy-addon-state.json'
+$stateFile = Join-Path $dataDir 'statnerd-addon-state.json'
+$nerdCoreFile = Join-Path $dataDir $nerdCoreFileName
 
 function Compose-CustomJs {
 	param(
@@ -51,7 +53,7 @@ function Compose-CustomJs {
 
 	$sources = @($ComposeSourcesRaw.Split(',') | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
 	$tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) ("grocy-addon-compose-{0}.tmp" -f ([Guid]::NewGuid().ToString('N')))
-	$parts = @('<!-- managed by install.ps1 (Grocy) -->')
+	$parts = @('<!-- managed by install.ps1 (StatNerd) -->')
 	$added = 0
 
 	foreach ($src in $sources)
@@ -79,6 +81,11 @@ function Compose-CustomJs {
 if (-not (Test-Path $dataDir))
 {
 	New-Item -ItemType Directory -Path $dataDir -Force | Out-Null
+}
+
+if (-not (Test-Path $nerdCoreFile))
+{
+	throw "NerdCore requis. Fichier manquant: $nerdCoreFile"
 }
 
 $backupFile = $null
@@ -110,3 +117,4 @@ $state | ConvertTo-Json | Set-Content -Encoding UTF8 $stateFile
 Write-Host "Payload addon installe: $targetFile"
 Write-Host "Fichier actif compose: $activeFile"
 Write-Host "Etat: $stateFile"
+

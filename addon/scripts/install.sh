@@ -23,12 +23,14 @@ fi
 DATA_DIR="$CONFIG_PATH/data"
 PAYLOAD_FILE_NAME="${ADDON_PAYLOAD_FILENAME:-custom_js_nerdstats.html}"
 ACTIVE_FILE_NAME="${ACTIVE_TARGET_FILENAME:-custom_js.html}"
-COMPOSE_SOURCES="${COMPOSE_SOURCES:-custom_js_nerdstats.html,custom_js_product_helper.html}"
+COMPOSE_SOURCES="${COMPOSE_SOURCES:-custom_js_nerdcore.html,custom_js_nerdstats.html,custom_js_product_helper.html}"
 COMPOSE_ENABLED="${COMPOSE_ENABLED:-1}"
+NERDCORE_FILE_NAME="${NERDCORE_FILENAME:-custom_js_nerdcore.html}"
 
 TARGET_FILE="$DATA_DIR/$PAYLOAD_FILE_NAME"
 ACTIVE_FILE="$DATA_DIR/$ACTIVE_FILE_NAME"
-STATE_FILE="$DATA_DIR/grocy-addon-state.json"
+STATE_FILE="$DATA_DIR/statnerd-addon-state.json"
+NERDCORE_FILE="$DATA_DIR/$NERDCORE_FILE_NAME"
 
 compose_custom_js() {
 	if [ "$COMPOSE_ENABLED" = "0" ] || [ "$COMPOSE_ENABLED" = "false" ]; then
@@ -37,7 +39,7 @@ compose_custom_js() {
 
 	TMP_FILE="$(mktemp "${TMPDIR:-/tmp}/grocy-addon-compose.XXXXXX")"
 	trap 'rm -f "$TMP_FILE"' EXIT
-	printf '<!-- managed by install.sh (Grocy) -->\n' > "$TMP_FILE"
+	printf '<!-- managed by install.sh (StatNerd) -->\n' > "$TMP_FILE"
 
 	ADDED=0
 	OLD_IFS="$IFS"
@@ -73,6 +75,12 @@ if [ ! -d "$DATA_DIR" ]; then
 	mkdir -p "$DATA_DIR"
 fi
 
+if [ ! -s "$NERDCORE_FILE" ]; then
+	echo "ERREUR: NerdCore requis. Fichier manquant: $NERDCORE_FILE" >&2
+	echo "Installe d'abord Raph563/NerdCore." >&2
+	exit 1
+fi
+
 BACKUP_FILE=""
 if [ -f "$ACTIVE_FILE" ] && [ "${NO_BACKUP:-0}" != "1" ]; then
 	TS="$(date -u +%Y%m%d_%H%M%S)"
@@ -102,3 +110,4 @@ EOF
 echo "Payload addon installe: $TARGET_FILE"
 echo "Fichier actif compose: $ACTIVE_FILE"
 echo "Etat: $STATE_FILE"
+
