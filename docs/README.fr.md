@@ -8,6 +8,14 @@ Depuis la separation 2026-02-19:
 - Les fonctions produit (OFF/OPF, robot code-barres, photo helpers) sont maintenues dans:
   - `https://github.com/Raph563/Grocy_Product_Helper`
 
+Co-installation (recommande):
+
+- payload core: `config/data/custom_js_nerdstats.html`
+- payload product helper: `config/data/custom_js_product_helper.html`
+- fichier actif compose: `config/data/custom_js.html`
+
+Les scripts install/update des deux repos gerent automatiquement cette composition.
+
 Fonctionnalités principales:
 
 - Dashboard analytics stock (KPI, graphiques, classements).

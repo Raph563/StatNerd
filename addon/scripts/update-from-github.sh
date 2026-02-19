@@ -10,6 +10,10 @@ CONFIG_PATH=""
 NO_BACKUP="${NO_BACKUP:-0}"
 ALLOW_PRERELEASE=0
 ALLOW_DOWNGRADE=0
+PAYLOAD_FILE_NAME="${ADDON_PAYLOAD_FILENAME:-custom_js_nerdstats.html}"
+ACTIVE_FILE_NAME="${ACTIVE_TARGET_FILENAME:-custom_js.html}"
+COMPOSE_SOURCES="${COMPOSE_SOURCES:-custom_js_nerdstats.html,custom_js_product_helper.html}"
+COMPOSE_ENABLED="${COMPOSE_ENABLED:-1}"
 
 usage() {
 	echo "Usage: ./update-from-github.sh [--repository owner/repo] [--tag vX.Y.Z] [--config /path/to/grocy/config] [--no-backup] [--allow-prerelease] [--allow-downgrade]" >&2
@@ -90,12 +94,52 @@ if [ -z "$CONFIG_PATH" ]; then
 fi
 
 DATA_DIR="$CONFIG_PATH/data"
-TARGET_FILE="$DATA_DIR/custom_js.html"
+TARGET_FILE="$DATA_DIR/$PAYLOAD_FILE_NAME"
+ACTIVE_FILE="$DATA_DIR/$ACTIVE_FILE_NAME"
 STATE_FILE="$DATA_DIR/grocy-addon-state.json"
 
 if [ ! -d "$DATA_DIR" ]; then
 	mkdir -p "$DATA_DIR"
 fi
+
+compose_custom_js() {
+	if [ "$COMPOSE_ENABLED" = "0" ] || [ "$COMPOSE_ENABLED" = "false" ]; then
+		return 1
+	fi
+
+	TMP_FILE="$(mktemp "${TMPDIR:-/tmp}/grocy-addon-compose.XXXXXX")"
+	trap 'rm -f "$TMP_FILE"' EXIT
+	printf '<!-- managed by update-from-github.sh (Grocy) -->\n' > "$TMP_FILE"
+
+	ADDED=0
+	OLD_IFS="$IFS"
+	IFS=','
+	for raw in $COMPOSE_SOURCES; do
+		src="$(printf '%s' "$raw" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
+		if [ -z "$src" ]; then
+			continue
+		fi
+		path="$DATA_DIR/$src"
+		if [ ! -s "$path" ]; then
+			continue
+		fi
+		printf '\n<!-- source: %s -->\n' "$src" >> "$TMP_FILE"
+		cat "$path" >> "$TMP_FILE"
+		printf '\n' >> "$TMP_FILE"
+		ADDED=1
+	done
+	IFS="$OLD_IFS"
+
+	if [ "$ADDED" != "1" ]; then
+		rm -f "$TMP_FILE"
+		trap - EXIT
+		return 1
+	fi
+
+	mv "$TMP_FILE" "$ACTIVE_FILE"
+	trap - EXIT
+	return 0
+}
 
 for cmd in curl python3 unzip mktemp cp; do
 	if ! command -v "$cmd" >/dev/null 2>&1; then
@@ -329,16 +373,19 @@ if [ -z "$ADDON_FILE" ] || [ ! -f "$ADDON_FILE" ]; then
 fi
 
 BACKUP_FILE=""
-if [ -f "$TARGET_FILE" ] && [ "$NO_BACKUP" != "1" ]; then
+if [ -f "$ACTIVE_FILE" ] && [ "$NO_BACKUP" != "1" ]; then
 	TS="$(date -u +%Y%m%d_%H%M%S)"
 	BACKUP_FILE="$DATA_DIR/custom_js.html.bak_addon_${TS}"
-	cp "$TARGET_FILE" "$BACKUP_FILE"
+	cp "$ACTIVE_FILE" "$BACKUP_FILE"
 	echo "Backup created: $BACKUP_FILE"
 fi
 
 cp "$ADDON_FILE" "$TARGET_FILE"
+if ! compose_custom_js; then
+	cp "$TARGET_FILE" "$ACTIVE_FILE"
+fi
 
-python3 - "$STATE_FILE" "$REPOSITORY" "$RELEASE_TAG" "$RELEASE_URL" "$ASSET_NAME" "$ASSET_URL" "$TARGET_FILE" "$BACKUP_FILE" <<'PY'
+python3 - "$STATE_FILE" "$REPOSITORY" "$RELEASE_TAG" "$RELEASE_URL" "$ASSET_NAME" "$ASSET_URL" "$TARGET_FILE" "$ACTIVE_FILE" "$BACKUP_FILE" <<'PY'
 import json
 import sys
 from datetime import datetime, timezone
@@ -352,13 +399,15 @@ state = {
     "asset_name": sys.argv[5],
     "asset_url": sys.argv[6],
     "target_file": sys.argv[7],
-    "backup_file": sys.argv[8],
+    "active_file": sys.argv[8],
+    "backup_file": sys.argv[9],
 }
 
 with open(sys.argv[1], "w", encoding="utf-8") as f:
     json.dump(state, f, indent=2)
 PY
 
-echo "Addon updated: $TARGET_FILE"
+echo "Addon payload updated: $TARGET_FILE"
+echo "Active file composed: $ACTIVE_FILE"
 echo "Release: $RELEASE_TAG"
 echo "State: $STATE_FILE"

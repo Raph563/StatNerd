@@ -222,10 +222,54 @@ function Compare-AddonTag {
 	return Compare-Prerelease -LeftPre $l.pre -RightPre $r.pre
 }
 
+function Compose-CustomJs {
+	param(
+		[string]$DataDir,
+		[string]$ComposeSourcesRaw,
+		[string]$ActiveTargetFile,
+		[string]$ComposeEnabled,
+		[string]$SourceLabel
+	)
+
+	if ([string]$ComposeEnabled -match '^(0|false)$')
+	{
+		return $false
+	}
+
+	$sources = @($ComposeSourcesRaw.Split(',') | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+	$parts = @("<!-- managed by update-from-github.ps1 ($SourceLabel) -->")
+	$added = 0
+
+	foreach ($src in $sources)
+	{
+		$path = Join-Path $DataDir $src
+		if (-not (Test-Path $path)) { continue }
+		$content = Get-Content -Raw -Path $path -ErrorAction SilentlyContinue
+		if ([string]::IsNullOrWhiteSpace($content)) { continue }
+		$parts += ''
+		$parts += "<!-- source: $src -->"
+		$parts += $content
+		$added++
+	}
+
+	if ($added -le 0)
+	{
+		return $false
+	}
+
+	[System.IO.File]::WriteAllText($ActiveTargetFile, ($parts -join [Environment]::NewLine), [System.Text.UTF8Encoding]::new($false))
+	return $true
+}
+
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $grocyConfigResolved = Resolve-GrocyConfigPath -ConfigPathInput $GrocyConfigPath -ScriptDir $scriptDir
 $dataDir = Join-Path $grocyConfigResolved 'data'
-$targetFile = Join-Path $dataDir 'custom_js.html'
+$payloadFileName = if ($env:ADDON_PAYLOAD_FILENAME) { $env:ADDON_PAYLOAD_FILENAME } else { 'custom_js_nerdstats.html' }
+$activeFileName = if ($env:ACTIVE_TARGET_FILENAME) { $env:ACTIVE_TARGET_FILENAME } else { 'custom_js.html' }
+$composeSourcesRaw = if ($env:COMPOSE_SOURCES) { $env:COMPOSE_SOURCES } else { 'custom_js_nerdstats.html,custom_js_product_helper.html' }
+$composeEnabled = if ($env:COMPOSE_ENABLED) { $env:COMPOSE_ENABLED } else { '1' }
+$targetFile = Join-Path $dataDir $payloadFileName
+$activeFile = Join-Path $dataDir $activeFileName
 $stateFile = Join-Path $dataDir 'grocy-addon-state.json'
 
 if (-not (Test-Path $dataDir))
@@ -292,15 +336,19 @@ try
 	}
 
 	$backupFile = $null
-	if ((Test-Path $targetFile) -and (-not $NoBackup))
+	if ((Test-Path $activeFile) -and (-not $NoBackup))
 	{
 		$ts = Get-Date -Format 'yyyyMMdd_HHmmss'
 		$backupFile = Join-Path $dataDir ("custom_js.html.bak_addon_{0}" -f $ts)
-		Copy-Item $targetFile $backupFile -Force
+		Copy-Item $activeFile $backupFile -Force
 		Write-Host "Backup created: $backupFile"
 	}
 
 	Copy-Item $addonFile $targetFile -Force
+	if (-not (Compose-CustomJs -DataDir $dataDir -ComposeSourcesRaw $composeSourcesRaw -ActiveTargetFile $activeFile -ComposeEnabled $composeEnabled -SourceLabel 'Grocy'))
+	{
+		Copy-Item $targetFile $activeFile -Force
+	}
 
 	$state = [ordered]@{
 		installed_at = (Get-Date).ToString('o')
@@ -311,11 +359,13 @@ try
 		asset_name = [string]$asset.name
 		asset_url = [string]$asset.browser_download_url
 		target_file = $targetFile
+		active_file = $activeFile
 		backup_file = $backupFile
 	}
 	$state | ConvertTo-Json | Set-Content -Encoding UTF8 $stateFile
 
-	Write-Host "Addon updated: $targetFile"
+	Write-Host "Addon payload updated: $targetFile"
+	Write-Host "Active file composed: $activeFile"
 	Write-Host "Release: $($release.tag_name)"
 	Write-Host "State: $stateFile"
 }

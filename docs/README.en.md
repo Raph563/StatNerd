@@ -8,6 +8,14 @@ Since the 2026-02-19 split:
 - Product workflows (OFF/OPF, barcode robot, photo helpers) are maintained in:
   - `https://github.com/Raph563/Grocy_Product_Helper`
 
+Co-installation (recommended):
+
+- core payload: `config/data/custom_js_nerdstats.html`
+- product-helper payload: `config/data/custom_js_product_helper.html`
+- composed active file: `config/data/custom_js.html`
+
+Install/update scripts in both repositories now handle this composition automatically.
+
 Main capabilities:
 
 - Stock analytics dashboard (KPIs, charts, rankings).

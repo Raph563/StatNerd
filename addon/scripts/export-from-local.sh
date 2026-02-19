@@ -14,7 +14,10 @@ if [ -z "$CONFIG_PATH" ]; then
 	fi
 fi
 
-SOURCE_FILE="$CONFIG_PATH/data/custom_js.html"
+SOURCE_FILE="$CONFIG_PATH/data/custom_js_nerdstats.html"
+if [ ! -f "$SOURCE_FILE" ]; then
+	SOURCE_FILE="$CONFIG_PATH/data/custom_js.html"
+fi
 DEST_FILE="$ADDON_ROOT/dist/custom_js.html"
 
 if [ ! -f "$SOURCE_FILE" ]; then

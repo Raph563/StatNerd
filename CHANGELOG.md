@@ -4,7 +4,21 @@ All notable changes to this repository are documented in this file.
 
 The format follows Keep a Changelog and semantic versioning.
 
-## [Unreleased] - 2026-02-19
+## [Unreleased]
+
+## [3.1.0] - 2026-02-19
+
+### Changed
+- GitHub install/update/uninstall flows now support co-install with `Raph563/Grocy_Product_Helper`:
+  - this addon writes its own payload file (`config/data/custom_js_nerdstats.html`);
+  - active Grocy file is composed (`config/data/custom_js.html`) from installed payload sources.
+- Docker sidecar now follows the same payload + compose model by default.
+- Export scripts now prefer addon-specific payload files before fallback to `custom_js.html`.
+
+### Compatibility
+- `Raph563/Grocy` and `Raph563/Grocy_Product_Helper` can now be installed independently or together without payload overwrite.
+
+## [3.0.0] - 2026-02-19
 
 ### Changed
 - Major split applied:

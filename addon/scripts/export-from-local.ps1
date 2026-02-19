@@ -21,7 +21,12 @@ if ([string]::IsNullOrWhiteSpace($GrocyConfigPath))
 	}
 }
 
-$sourceFile = Join-Path (Join-Path $GrocyConfigPath 'data') 'custom_js.html'
+$dataDir = Join-Path $GrocyConfigPath 'data'
+$sourceFile = Join-Path $dataDir 'custom_js_nerdstats.html'
+if (-not (Test-Path $sourceFile))
+{
+	$sourceFile = Join-Path $dataDir 'custom_js.html'
+}
 if (-not (Test-Path $sourceFile))
 {
 	throw "Source introuvable: $sourceFile"

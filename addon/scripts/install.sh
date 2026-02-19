@@ -21,22 +21,70 @@ if [ -z "$CONFIG_PATH" ]; then
 fi
 
 DATA_DIR="$CONFIG_PATH/data"
-TARGET_FILE="$DATA_DIR/custom_js.html"
+PAYLOAD_FILE_NAME="${ADDON_PAYLOAD_FILENAME:-custom_js_nerdstats.html}"
+ACTIVE_FILE_NAME="${ACTIVE_TARGET_FILENAME:-custom_js.html}"
+COMPOSE_SOURCES="${COMPOSE_SOURCES:-custom_js_nerdstats.html,custom_js_product_helper.html}"
+COMPOSE_ENABLED="${COMPOSE_ENABLED:-1}"
+
+TARGET_FILE="$DATA_DIR/$PAYLOAD_FILE_NAME"
+ACTIVE_FILE="$DATA_DIR/$ACTIVE_FILE_NAME"
 STATE_FILE="$DATA_DIR/grocy-addon-state.json"
+
+compose_custom_js() {
+	if [ "$COMPOSE_ENABLED" = "0" ] || [ "$COMPOSE_ENABLED" = "false" ]; then
+		return 0
+	fi
+
+	TMP_FILE="$(mktemp "${TMPDIR:-/tmp}/grocy-addon-compose.XXXXXX")"
+	trap 'rm -f "$TMP_FILE"' EXIT
+	printf '<!-- managed by install.sh (Grocy) -->\n' > "$TMP_FILE"
+
+	ADDED=0
+	OLD_IFS="$IFS"
+	IFS=','
+	for raw in $COMPOSE_SOURCES; do
+		src="$(printf '%s' "$raw" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
+		if [ -z "$src" ]; then
+			continue
+		fi
+		path="$DATA_DIR/$src"
+		if [ ! -s "$path" ]; then
+			continue
+		fi
+		printf '\n<!-- source: %s -->\n' "$src" >> "$TMP_FILE"
+		cat "$path" >> "$TMP_FILE"
+		printf '\n' >> "$TMP_FILE"
+		ADDED=1
+	done
+	IFS="$OLD_IFS"
+
+	if [ "$ADDED" != "1" ]; then
+		rm -f "$TMP_FILE"
+		trap - EXIT
+		return 1
+	fi
+
+	mv "$TMP_FILE" "$ACTIVE_FILE"
+	trap - EXIT
+}
 
 if [ ! -d "$DATA_DIR" ]; then
 	mkdir -p "$DATA_DIR"
 fi
 
 BACKUP_FILE=""
-if [ -f "$TARGET_FILE" ] && [ "${NO_BACKUP:-0}" != "1" ]; then
+if [ -f "$ACTIVE_FILE" ] && [ "${NO_BACKUP:-0}" != "1" ]; then
 	TS="$(date -u +%Y%m%d_%H%M%S)"
 	BACKUP_FILE="$DATA_DIR/custom_js.html.bak_addon_${TS}"
-	cp "$TARGET_FILE" "$BACKUP_FILE"
+	cp "$ACTIVE_FILE" "$BACKUP_FILE"
 	echo "Backup cree: $BACKUP_FILE"
 fi
 
 cp "$ADDON_FILE" "$TARGET_FILE"
+
+if ! compose_custom_js; then
+	cp "$TARGET_FILE" "$ACTIVE_FILE"
+fi
 
 cat > "$STATE_FILE" <<EOF
 {
@@ -44,9 +92,11 @@ cat > "$STATE_FILE" <<EOF
   "installed_by": "install.sh",
   "addon_file": "$ADDON_FILE",
   "target_file": "$TARGET_FILE",
+  "active_file": "$ACTIVE_FILE",
   "backup_file": "$BACKUP_FILE"
 }
 EOF
 
-echo "Addon installe: $TARGET_FILE"
+echo "Payload addon installe: $TARGET_FILE"
+echo "Fichier actif compose: $ACTIVE_FILE"
 echo "Etat: $STATE_FILE"

@@ -15,6 +15,16 @@ Product helper features (barcode robot, OFF/OPF product tools, photo helpers) mo
 - `Raph563/Grocy` => stats/charts core
 - `Raph563/Grocy_Product_Helper` => product workflow addon
 
+## Co-Install Support
+
+The install/update scripts now keep each addon isolated and compose the active Grocy payload automatically.
+
+- Core payload file: `config/data/custom_js_nerdstats.html`
+- Product payload file: `config/data/custom_js_product_helper.html`
+- Active composed file: `config/data/custom_js.html`
+
+So users can install only one addon, or both, without overwriting each other.
+
 ## Docs
 
 French:

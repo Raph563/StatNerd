@@ -13,6 +13,13 @@ Les fonctions produit ont ete separees dans:
 - `scripts/update-from-github.*`: update depuis releases GitHub.
 - `docker-sidecar/`: option sidecar Docker.
 
+## Fichiers geres
+
+- payload core: `config/data/custom_js_nerdstats.html`
+- payload product helper: `config/data/custom_js_product_helper.html` (si installe)
+- fichier actif compose: `config/data/custom_js.html`
+- etat core: `config/data/grocy-addon-state.json`
+
 ## Installation locale
 
 ```powershell
