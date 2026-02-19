@@ -59,6 +59,7 @@ compose_custom_js() {
 	fi
 
 	mv "$TMP_FILE" "$ACTIVE_FILE"
+	chmod 0644 "$ACTIVE_FILE" 2>/dev/null || chmod a+r "$ACTIVE_FILE" 2>/dev/null || true
 	trap - EXIT
 	return 0
 }
@@ -88,6 +89,7 @@ fi
 
 if [ -n "$RESTORE_FILE" ] && [ -f "$RESTORE_FILE" ]; then
 	cp "$RESTORE_FILE" "$ACTIVE_FILE"
+	chmod 0644 "$ACTIVE_FILE" 2>/dev/null || chmod a+r "$ACTIVE_FILE" 2>/dev/null || true
 	echo "Restaure depuis: $RESTORE_FILE"
 	echo "Fichier actif: $ACTIVE_FILE"
 	exit 0

@@ -6,6 +6,16 @@ The format follows Keep a Changelog and semantic versioning.
 
 ## [Unreleased]
 
+## [3.1.1] - 2026-02-19
+
+### Fixed
+- Shell compose flows now force readable permissions on the active composed file (`config/data/custom_js.html`) to avoid Grocy runtime load failures when scripts are executed as `root` with restrictive umask.
+- Applied to:
+  - `addon/scripts/install.sh`
+  - `addon/scripts/uninstall.sh`
+  - `addon/scripts/update-from-github.sh`
+  - `addon/docker-sidecar/entrypoint.sh`
+
 ## [3.1.0] - 2026-02-19
 
 ### Changed

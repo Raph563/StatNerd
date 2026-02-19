@@ -39,6 +39,7 @@ cp "$ADDON_SOURCE" "$TARGET_FILE"
 compose_custom_js() {
 	if [ "$COMPOSE_ENABLED" = "false" ] || [ "$COMPOSE_ENABLED" = "0" ]; then
 		cp "$TARGET_FILE" "$ACTIVE_FILE"
+		chmod 0644 "$ACTIVE_FILE" 2>/dev/null || chmod a+r "$ACTIVE_FILE" 2>/dev/null || true
 		return 0
 	fi
 	TMP_FILE="$(mktemp "${TMPDIR:-/tmp}/grocy-addon-sidecar-compose.XXXXXX")"
@@ -66,9 +67,11 @@ compose_custom_js() {
 		rm -f "$TMP_FILE"
 		trap - EXIT
 		cp "$TARGET_FILE" "$ACTIVE_FILE"
+		chmod 0644 "$ACTIVE_FILE" 2>/dev/null || chmod a+r "$ACTIVE_FILE" 2>/dev/null || true
 		return 0
 	fi
 	mv "$TMP_FILE" "$ACTIVE_FILE"
+	chmod 0644 "$ACTIVE_FILE" 2>/dev/null || chmod a+r "$ACTIVE_FILE" 2>/dev/null || true
 	trap - EXIT
 }
 

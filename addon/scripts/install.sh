@@ -65,6 +65,7 @@ compose_custom_js() {
 	fi
 
 	mv "$TMP_FILE" "$ACTIVE_FILE"
+	chmod 0644 "$ACTIVE_FILE" 2>/dev/null || chmod a+r "$ACTIVE_FILE" 2>/dev/null || true
 	trap - EXIT
 }
 
@@ -84,6 +85,7 @@ cp "$ADDON_FILE" "$TARGET_FILE"
 
 if ! compose_custom_js; then
 	cp "$TARGET_FILE" "$ACTIVE_FILE"
+	chmod 0644 "$ACTIVE_FILE" 2>/dev/null || chmod a+r "$ACTIVE_FILE" 2>/dev/null || true
 fi
 
 cat > "$STATE_FILE" <<EOF

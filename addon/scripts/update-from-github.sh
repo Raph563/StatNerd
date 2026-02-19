@@ -137,6 +137,7 @@ compose_custom_js() {
 	fi
 
 	mv "$TMP_FILE" "$ACTIVE_FILE"
+	chmod 0644 "$ACTIVE_FILE" 2>/dev/null || chmod a+r "$ACTIVE_FILE" 2>/dev/null || true
 	trap - EXIT
 	return 0
 }
@@ -383,6 +384,7 @@ fi
 cp "$ADDON_FILE" "$TARGET_FILE"
 if ! compose_custom_js; then
 	cp "$TARGET_FILE" "$ACTIVE_FILE"
+	chmod 0644 "$ACTIVE_FILE" 2>/dev/null || chmod a+r "$ACTIVE_FILE" 2>/dev/null || true
 fi
 
 python3 - "$STATE_FILE" "$REPOSITORY" "$RELEASE_TAG" "$RELEASE_URL" "$ASSET_NAME" "$ASSET_URL" "$TARGET_FILE" "$ACTIVE_FILE" "$BACKUP_FILE" <<'PY'
