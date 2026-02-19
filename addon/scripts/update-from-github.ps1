@@ -230,7 +230,7 @@ $stateFile = Join-Path $dataDir 'grocy-addon-state.json'
 
 if (-not (Test-Path $dataDir))
 {
-	throw "Data directory not found: $dataDir"
+	New-Item -ItemType Directory -Path $dataDir -Force | Out-Null
 }
 
 $repo = Resolve-RepositoryParts -RepositoryValue $Repository

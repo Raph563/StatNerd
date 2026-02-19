@@ -8,6 +8,24 @@ The format follows Keep a Changelog and semantic versioning.
 
 - No entries yet.
 
+## [2.1.0] - 2026-02-19
+
+### Added
+- New settings section `Transfert données utilisateur` in StatNerd:
+  - Export user preferences (`localStorage` keys with `grocy_dash_` prefix) to JSON backup.
+  - Import JSON backup to restore/migrate StatNerd user settings between local setup and VPS/browser.
+
+### Changed
+- Stable line now keeps the functional coverage from the `1.2.1-alpha.*` stream (UI/analytics/update tooling/features), with this release as the new migration-ready baseline.
+
+### Fixed
+- Install/update scripts now create missing Grocy `config/data` directory automatically instead of failing early:
+  - `addon/scripts/install.sh`
+  - `addon/scripts/install.ps1`
+  - `addon/scripts/update-from-github.sh`
+  - `addon/scripts/update-from-github.ps1`
+- Shell updater metadata read is now robust with `set -e` shells (newline-safe metadata output + guarded `read`), fixing update failures seen on VPS.
+
 ## [2.0.0] - 2026-02-19
 
 ### Changed

@@ -713,7 +713,10 @@
   const UI_STATE_STORAGE_KEY = 'grocy_dash_ui_state_v1';
   const ADDON_COMPATIBILITY_KEY = 'grocy_dash_addon_compatibility_v1';
   const ADDON_UPDATE_KEY = 'grocy_dash_addon_update_v1';
-  const ADDON_RUNTIME_VERSION = '2.0.0';
+  const USER_DATA_TRANSFER_SCHEMA = 'statnerd-user-data';
+  const USER_DATA_TRANSFER_SCHEMA_VERSION = 1;
+  const USER_DATA_TRANSFER_STORAGE_PREFIX = 'grocy_dash_';
+  const ADDON_RUNTIME_VERSION = '2.1.0';
   const ADDON_UPDATE_DEFAULT_REPOSITORY = 'Raph563/Grocy';
   const BARCODE_LOOKUP_PROVIDER_IDS = ['openfoodfacts', 'openproductsfacts'];
   const PHOTO_SEARCH_ENGINE_IDS = ['google', 'duckduckgo', 'bing'];
@@ -1525,6 +1528,20 @@
       addon_update_status_error: 'Échec vérification mise à jour: {{msg}}',
       addon_update_copy_ok: 'Commande copiée.',
       addon_update_copy_fail: 'Copie impossible: sélectionne la commande manuellement.',
+      settings_section_user_data_transfer: 'Transfert données utilisateur',
+      user_data_transfer_desc: 'Exporte/importe les préférences StatNerd (localStorage) pour migrer ton setup local vers un autre navigateur ou serveur.',
+      user_data_transfer_scope: 'Import complet: remplace les clés StatNerd existantes (préfixe grocy_dash_).',
+      user_data_transfer_export_btn: 'Exporter les données',
+      user_data_transfer_import_btn: 'Importer un backup',
+      user_data_transfer_status_idle: 'Aucun backup importé pour cette session.',
+      user_data_transfer_status_export_ok: 'Backup exporté: {{count}} clé(s) sauvegardée(s).',
+      user_data_transfer_status_import_ok: 'Import terminé: {{applied}} clé(s) appliquée(s), {{removed}} ancienne(s) clé(s) remplacée(s). Recharge la page pour appliquer partout.',
+      user_data_transfer_error_read_file: 'Impossible de lire le fichier sélectionné.',
+      user_data_transfer_error_invalid_json: 'Fichier invalide: JSON non lisible.',
+      user_data_transfer_error_invalid_format: 'Format backup invalide.',
+      user_data_transfer_error_no_entries: 'Backup vide: aucune donnée utilisateur StatNerd trouvée.',
+      user_data_transfer_error_export: 'Erreur export backup: {{msg}}',
+      user_data_transfer_error_import: 'Erreur import backup: {{msg}}',
       ai_validation_mode_label: 'Mode de validation au clic sur Enregistrer',
       ai_validation_mode_single: 'Agent unique',
       ai_validation_mode_fallback: 'Chaîne fallback',
@@ -2123,6 +2140,20 @@
       addon_update_status_error: 'Update check failed: {{msg}}',
       addon_update_copy_ok: 'Command copied.',
       addon_update_copy_fail: 'Copy failed: select command manually.',
+      settings_section_user_data_transfer: 'User data transfer',
+      user_data_transfer_desc: 'Export/import StatNerd preferences (localStorage) to migrate your local setup to another browser or server.',
+      user_data_transfer_scope: 'Full import: replaces existing StatNerd keys (grocy_dash_ prefix).',
+      user_data_transfer_export_btn: 'Export data',
+      user_data_transfer_import_btn: 'Import backup',
+      user_data_transfer_status_idle: 'No backup imported in this session.',
+      user_data_transfer_status_export_ok: 'Backup exported: {{count}} key(s) saved.',
+      user_data_transfer_status_import_ok: 'Import done: {{applied}} key(s) applied, {{removed}} previous key(s) replaced. Reload page to apply everywhere.',
+      user_data_transfer_error_read_file: 'Unable to read selected file.',
+      user_data_transfer_error_invalid_json: 'Invalid file: unreadable JSON.',
+      user_data_transfer_error_invalid_format: 'Invalid backup format.',
+      user_data_transfer_error_no_entries: 'Backup is empty: no StatNerd user data found.',
+      user_data_transfer_error_export: 'Backup export error: {{msg}}',
+      user_data_transfer_error_import: 'Backup import error: {{msg}}',
       ai_validation_mode_label: 'Validation mode when clicking Save',
       ai_validation_mode_single: 'Single agent',
       ai_validation_mode_fallback: 'Fallback chain',
@@ -9133,6 +9164,223 @@
     syncAddonUpdateSettingsSection();
   }
 
+  function setUserDataTransferStatus(text = '', level = 'muted') {
+    const node = document.getElementById('dash_user_data_status');
+    if (!node) return;
+    node.className = `small mt-2 text-${level}`;
+    node.textContent = clean(text || '');
+  }
+
+  function collectUserDataTransferEntries() {
+    const entries = [];
+    try {
+      const prefix = clean(USER_DATA_TRANSFER_STORAGE_PREFIX || 'grocy_dash_');
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = clean(localStorage.key(i) || '');
+        if (!key || !key.startsWith(prefix)) continue;
+        const value = localStorage.getItem(key);
+        entries.push({
+          key,
+          value: typeof value === 'string' ? value : '',
+        });
+      }
+    } catch (_err) {
+      return [];
+    }
+    return entries.sort((a, b) => clean(a.key || '').localeCompare(clean(b.key || '')));
+  }
+
+  function buildUserDataTransferPayload() {
+    const entries = collectUserDataTransferEntries();
+    const storage = {};
+    entries.forEach((entry) => {
+      const key = clean(entry && entry.key ? entry.key : '');
+      if (!key) return;
+      storage[key] = String(entry && Object.prototype.hasOwnProperty.call(entry, 'value') ? entry.value : '');
+    });
+    return {
+      schema: USER_DATA_TRANSFER_SCHEMA,
+      schemaVersion: USER_DATA_TRANSFER_SCHEMA_VERSION,
+      createdAt: new Date().toISOString(),
+      addonVersion: clean(ADDON_RUNTIME_VERSION || ''),
+      origin: clean(window.location && window.location.origin ? window.location.origin : ''),
+      entryCount: entries.length,
+      entries,
+      storage,
+    };
+  }
+
+  function parseUserDataTransferPayload(rawInput = '') {
+    const raw = String(rawInput || '');
+    if (!clean(raw)) {
+      throw new Error(t('user_data_transfer_error_invalid_json'));
+    }
+    let parsed = null;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (_err) {
+      throw new Error(t('user_data_transfer_error_invalid_json'));
+    }
+    if (!parsed || typeof parsed !== 'object') {
+      throw new Error(t('user_data_transfer_error_invalid_format'));
+    }
+
+    const entriesRaw = Array.isArray(parsed.entries) ? parsed.entries : [];
+    const storageRaw = parsed.storage && typeof parsed.storage === 'object' ? parsed.storage : {};
+    const merged = new Map();
+
+    entriesRaw.forEach((entry) => {
+      if (!entry || typeof entry !== 'object') return;
+      const key = clean(entry.key || '');
+      if (!key || !key.startsWith(USER_DATA_TRANSFER_STORAGE_PREFIX)) return;
+      const value = Object.prototype.hasOwnProperty.call(entry, 'value') ? entry.value : '';
+      merged.set(key, String(value == null ? '' : value));
+    });
+    Object.entries(storageRaw).forEach(([rawKey, rawValue]) => {
+      const key = clean(rawKey || '');
+      if (!key || !key.startsWith(USER_DATA_TRANSFER_STORAGE_PREFIX)) return;
+      merged.set(key, String(rawValue == null ? '' : rawValue));
+    });
+
+    const entries = Array.from(merged.entries())
+      .map(([key, value]) => ({ key, value }))
+      .sort((a, b) => clean(a.key || '').localeCompare(clean(b.key || '')));
+    if (!entries.length) {
+      throw new Error(t('user_data_transfer_error_no_entries'));
+    }
+    return {
+      schema: clean(parsed.schema || USER_DATA_TRANSFER_SCHEMA),
+      schemaVersion: Math.max(1, Math.floor(num(parsed.schemaVersion || USER_DATA_TRANSFER_SCHEMA_VERSION))),
+      entries,
+    };
+  }
+
+  function applyUserDataTransferPayload(payloadInput = null) {
+    const payload = payloadInput && typeof payloadInput === 'object' ? payloadInput : null;
+    if (!payload || !Array.isArray(payload.entries) || !payload.entries.length) {
+      throw new Error(t('user_data_transfer_error_invalid_format'));
+    }
+    let removed = 0;
+    let applied = 0;
+    const prefix = clean(USER_DATA_TRANSFER_STORAGE_PREFIX || 'grocy_dash_');
+
+    const keysToRemove = [];
+    try {
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = clean(localStorage.key(i) || '');
+        if (!key || !key.startsWith(prefix)) continue;
+        keysToRemove.push(key);
+      }
+    } catch (_err) {}
+
+    keysToRemove.forEach((key) => {
+      try {
+        localStorage.removeItem(key);
+        removed += 1;
+      } catch (_err) {}
+    });
+
+    payload.entries.forEach((entry) => {
+      const key = clean(entry && entry.key ? entry.key : '');
+      if (!key || !key.startsWith(prefix)) return;
+      const value = String(entry && Object.prototype.hasOwnProperty.call(entry, 'value') ? entry.value : '');
+      try {
+        localStorage.setItem(key, value);
+        applied += 1;
+      } catch (_err) {}
+    });
+
+    return { removed, applied };
+  }
+
+  function refreshSettingsAfterUserDataImport() {
+    try { S.aiSettings = null; } catch (_err) {}
+    try { S.barcodeLookupSettings = null; } catch (_err) {}
+    try { S.barcodeAutofillUiSettings = null; } catch (_err) {}
+    try { S.photoSearchSettings = null; } catch (_err) {}
+    try { S.addonCompatState = null; } catch (_err) {}
+    try { S.addonUpdateState = null; } catch (_err) {}
+    safeRun('loadAiSettings', () => loadAiSettings());
+    safeRun('loadBarcodeLookupSettings', () => loadBarcodeLookupSettings());
+    safeRun('loadBarcodeAutofillUiSettings', () => loadBarcodeAutofillUiSettings());
+    safeRun('loadPhotoSearchSettings', () => loadPhotoSearchSettings());
+    safeRun('loadBrandLogoSettings', () => loadBrandLogoSettings());
+    safeRun('loadAddonCompatibilityState', () => loadAddonCompatibilityState());
+    safeRun('loadAddonUpdateState', () => loadAddonUpdateState());
+    safeRun('fillAiSettingsForm', () => fillAiSettingsForm());
+    safeRun('syncAiSettingsButton', () => syncAiSettingsButton());
+  }
+
+  function downloadUserDataTransferPayload(payloadInput = null) {
+    const payload = payloadInput && typeof payloadInput === 'object' ? payloadInput : buildUserDataTransferPayload();
+    const stamp = new Date().toISOString().replace(/[:]/g, '-').replace(/\..+$/, 'Z');
+    const fileName = `statnerd-user-data-${stamp}.json`;
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    if (link.parentNode) link.parentNode.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  async function runUserDataTransferExport() {
+    const button = document.getElementById('dash_user_data_export');
+    if (button) setButtonBusy(button, true);
+    try {
+      const payload = buildUserDataTransferPayload();
+      if (!payload.entries || payload.entries.length <= 0) {
+        throw new Error(t('user_data_transfer_error_no_entries'));
+      }
+      downloadUserDataTransferPayload(payload);
+      setUserDataTransferStatus(t('user_data_transfer_status_export_ok', { count: fmt(payload.entries.length, 0) }), 'success');
+    } catch (error) {
+      const msg = clean(error && error.message ? error.message : String(error)) || t('focus_unknown_error');
+      setUserDataTransferStatus(t('user_data_transfer_error_export', { msg }), 'danger');
+    } finally {
+      if (button) setButtonBusy(button, false);
+    }
+  }
+
+  async function runUserDataTransferImportFromFile(fileInput = null) {
+    const file = fileInput && typeof fileInput === 'object' ? fileInput : null;
+    if (!file) {
+      setUserDataTransferStatus(t('user_data_transfer_error_read_file'), 'warning');
+      return null;
+    }
+
+    const importBtn = document.getElementById('dash_user_data_import');
+    if (importBtn) setButtonBusy(importBtn, true);
+    try {
+      const fileText = await new Promise((resolve, reject) => {
+        try {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || ''));
+          reader.onerror = () => reject(new Error(t('user_data_transfer_error_read_file')));
+          reader.readAsText(file);
+        } catch (_err) {
+          reject(new Error(t('user_data_transfer_error_read_file')));
+        }
+      });
+      const payload = parseUserDataTransferPayload(fileText);
+      const result = applyUserDataTransferPayload(payload);
+      refreshSettingsAfterUserDataImport();
+      setUserDataTransferStatus(t('user_data_transfer_status_import_ok', {
+        applied: fmt(result.applied, 0),
+        removed: fmt(result.removed, 0),
+      }), 'success');
+      return result;
+    } catch (error) {
+      const msg = clean(error && error.message ? error.message : String(error)) || t('focus_unknown_error');
+      setUserDataTransferStatus(t('user_data_transfer_error_import', { msg }), 'danger');
+      return null;
+    } finally {
+      if (importBtn) setButtonBusy(importBtn, false);
+    }
+  }
+
   function providerFormFieldId(providerId, fieldName) {
     return `dash_ai_${providerId}_${fieldName}`;
   }
@@ -10070,6 +10318,9 @@
       'dash_addon_update_check',
       'dash_addon_update_copy_ps',
       'dash_addon_update_copy_sh',
+      'dash_user_data_export',
+      'dash_user_data_import',
+      'dash_user_data_import_file',
       'dash_brand_logo_save_section',
       'dash_brand_logo_lookup',
       'dash_brand_logo_fetch_all',
@@ -11440,6 +11691,53 @@
     fillAddonUpdateSettingsForm();
   }
 
+  function ensureUserDataTransferSection() {
+    const overlay = document.getElementById('dash_ai_settings_overlay');
+    if (!overlay) return;
+    if (document.getElementById('dash_user_data_transfer_section')) return;
+
+    const body = overlay.querySelector('.card-body');
+    if (!body) return;
+
+    const section = document.createElement('div');
+    section.id = 'dash_user_data_transfer_section';
+    section.className = 'dash-settings-section p-2 mt-3';
+    section.innerHTML = `
+      <div class="small font-weight-bold mb-2">${t('settings_section_user_data_transfer')}</div>
+      <div class="small text-muted mb-1">${t('user_data_transfer_desc')}</div>
+      <div class="small text-muted mb-2">${t('user_data_transfer_scope')}</div>
+      <div class="d-flex flex-wrap align-items-center">
+        <button id="dash_user_data_export" type="button" class="btn btn-outline-info btn-sm mr-2 mb-1">${t('user_data_transfer_export_btn')}</button>
+        <button id="dash_user_data_import" type="button" class="btn btn-outline-secondary btn-sm mb-1">${t('user_data_transfer_import_btn')}</button>
+        <input id="dash_user_data_import_file" type="file" accept=".json,application/json" class="d-none">
+      </div>
+      <div id="dash_user_data_status" class="small mt-2 text-muted">${t('user_data_transfer_status_idle')}</div>
+    `;
+
+    const updateSection = document.getElementById('dash_addon_update_section');
+    if (updateSection && updateSection.parentNode) {
+      updateSection.parentNode.insertBefore(section, updateSection.nextSibling);
+    } else {
+      body.appendChild(section);
+    }
+
+    section.querySelector('#dash_user_data_export')?.addEventListener('click', async () => {
+      await runUserDataTransferExport();
+    });
+    section.querySelector('#dash_user_data_import')?.addEventListener('click', () => {
+      const input = section.querySelector('#dash_user_data_import_file');
+      if (!input) return;
+      try { input.value = ''; } catch (_err) {}
+      input.click();
+    });
+    section.querySelector('#dash_user_data_import_file')?.addEventListener('change', async (event) => {
+      const input = event && event.target ? event.target : null;
+      const file = input && input.files && input.files.length > 0 ? input.files[0] : null;
+      await runUserDataTransferImportFromFile(file);
+      try { if (input) input.value = ''; } catch (_err) {}
+    });
+  }
+
   function initAiSettingsOverlay() {
     if (document.getElementById('dash_ai_settings_overlay')) return;
     const overlay = document.createElement('div');
@@ -11648,6 +11946,7 @@
     ensurePhotoSearchSettingsSection();
     ensureAddonCompatibilitySection();
     ensureAddonUpdateSettingsSection();
+    ensureUserDataTransferSection();
 
     document.getElementById('dash_ai_close')?.addEventListener('click', closeAiSettingsOverlay);
     document.getElementById('dash_ai_provider')?.addEventListener('change', () => {

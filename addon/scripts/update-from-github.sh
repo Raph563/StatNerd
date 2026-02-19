@@ -94,8 +94,7 @@ TARGET_FILE="$DATA_DIR/custom_js.html"
 STATE_FILE="$DATA_DIR/grocy-addon-state.json"
 
 if [ ! -d "$DATA_DIR" ]; then
-	echo "ERROR: data directory not found: $DATA_DIR" >&2
-	exit 1
+	mkdir -p "$DATA_DIR"
 fi
 
 for cmd in curl python3 unzip mktemp cp; do
@@ -224,10 +223,11 @@ fields = [
 ]
 
 with open(sys.argv[2], "w", encoding="utf-8") as f:
-    f.write("\t".join(v.replace("\t", " ") for v in fields))
+    # Ensure trailing newline so POSIX read returns success with set -e shells.
+    f.write("\t".join(v.replace("\t", " ") for v in fields) + "\n")
 PY
 
-IFS="$(printf '\t')" read -r RELEASE_TAG RELEASE_URL ASSET_NAME ASSET_URL < "$META_FILE"
+IFS="$(printf '\t')" read -r RELEASE_TAG RELEASE_URL ASSET_NAME ASSET_URL < "$META_FILE" || true
 if [ -z "$ASSET_NAME" ] || [ -z "$ASSET_URL" ]; then
 	echo "ERROR: no ZIP asset found in release '$RELEASE_TAG'." >&2
 	exit 1

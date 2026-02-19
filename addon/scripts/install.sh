@@ -25,8 +25,7 @@ TARGET_FILE="$DATA_DIR/custom_js.html"
 STATE_FILE="$DATA_DIR/grocy-addon-state.json"
 
 if [ ! -d "$DATA_DIR" ]; then
-	echo "ERREUR: dossier data introuvable: $DATA_DIR" >&2
-	exit 1
+	mkdir -p "$DATA_DIR"
 fi
 
 BACKUP_FILE=""

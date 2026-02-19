@@ -33,7 +33,7 @@ $stateFile = Join-Path $dataDir 'grocy-addon-state.json'
 
 if (-not (Test-Path $dataDir))
 {
-	throw "Dossier data introuvable: $dataDir"
+	New-Item -ItemType Directory -Path $dataDir -Force | Out-Null
 }
 
 $backupFile = $null
