@@ -1,5 +1,17 @@
 # Changelog
 
+## [4.1.0] - 2026-02-19
+
+### Added
+- Native settings page rendering on `/stocksettings?statnerd=1` with Grocy page layout.
+- Restored settings grouping to include stats/graph block (`dash_rankings_full_section`).
+- Addon registration metadata for NerdCore menu routing (`settingsSection`, `settingsTitle`, `settingsIcon`).
+
+### Changed
+- Runtime version bump to `4.1.0`.
+- Legacy relay URL now resolves from NerdCore VPS API base (`/__nerdcore_update`).
+- Legacy settings redirect now targets `NERDCORE.openSettingsPage('statnerd')`.
+
 ## [4.0.0] - 2026-02-19
 
 ### Breaking

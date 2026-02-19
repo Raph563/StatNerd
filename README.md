@@ -12,6 +12,10 @@ Without NerdCore, StatNerd runtime is disabled by design.
 - StatNerd payload: `config/data/custom_js_nerdstats.html`
 - Composed active file: `config/data/custom_js.html`
 
+## Settings page
+- Dedicated Grocy page: `/stocksettings?statnerd=1`
+- Menu entry is injected by NerdCore.
+
 ## Install order
 1. Install NerdCore
 2. Install StatNerd

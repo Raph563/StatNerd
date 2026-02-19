@@ -7,7 +7,14 @@
     console.warn('[StatNerd] NerdCore is required. Install NerdCore first.');
     return;
   }
-  NERDCORE.registerAddon({ id: 'statnerd', name: 'StatNerd', version: '4.0.0' });
+  NERDCORE.registerAddon({
+    id: 'statnerd',
+    name: 'StatNerd',
+    version: '4.1.0',
+    settingsSection: 'statnerd',
+    settingsTitle: 'StatNerd',
+    settingsIcon: 'fa-chart-line',
+  });
   const NERDCORE_DISABLE_LEGACY_SETTINGS = typeof NERDCORE.isLegacySettingsDisabled === 'function'
     ? !!NERDCORE.isLegacySettingsDisabled()
     : true;
@@ -729,10 +736,12 @@
   const USER_DATA_TRANSFER_SCHEMA = 'statnerd-user-data';
   const USER_DATA_TRANSFER_SCHEMA_VERSION = 1;
   const USER_DATA_TRANSFER_STORAGE_PREFIX = 'grocy_dash_';
-  const ADDON_RUNTIME_VERSION = '4.0.0';
+  const ADDON_RUNTIME_VERSION = '4.1.0';
   const ADDON_UPDATE_DEFAULT_REPOSITORY = 'Raph563/StatNerd';
   const ADDON_UPDATE_DEFAULT_LOCAL_ROOT = 'C:\\Users\\Admin\\Documents\\Docker\\grocy';
-  const ADDON_UPDATE_RELAY_BASE_URL = 'http://127.0.0.1:17863';
+  const ADDON_UPDATE_RELAY_BASE_URL = (NERDCORE && typeof NERDCORE.getUpdateApiBase === 'function')
+    ? NERDCORE.getUpdateApiBase()
+    : `${window.location.protocol}//${window.location.host}/__nerdcore_update`;
   const ADDON_UPDATE_PRERELEASE_VISIBLE_LIMIT = 5;
   const NO_DUE_SENTINEL_DATE = '2999-12-31';
   const STATNERD_AUTHOR_NAME = 'Raph563';
@@ -7012,6 +7021,22 @@
       #dash_ai_settings_overlay .dash-ai-settings-card .card-body {
         overflow: auto;
       }
+      #dash_ai_settings_overlay.dash-ai-settings-inline {
+        display: block !important;
+        position: static;
+        inset: auto;
+        z-index: auto;
+        background: transparent;
+        padding: 0;
+      }
+      #dash_ai_settings_overlay.dash-ai-settings-inline .dash-ai-settings-card {
+        max-width: none;
+        max-height: none;
+        margin: 0;
+      }
+      #dash_ai_settings_overlay.dash-ai-settings-inline .dash-ai-settings-card .card-header {
+        border-bottom: 1px solid rgba(255,255,255,0.12);
+      }
       #dash_ai_settings_overlay .dash-settings-section {
         border: 1px solid rgba(255,255,255,0.14);
         border-radius: 0.62rem;
@@ -8208,9 +8233,22 @@
     return `${ADDON_UPDATE_RELAY_BASE_URL}/${path}`;
   }
 
+  function addonUpdateRelayHeaders() {
+    const token = (NERDCORE && typeof NERDCORE.getUpdateToken === 'function')
+      ? clean(NERDCORE.getUpdateToken() || '')
+      : '';
+    const headers = { Accept: 'application/json' };
+    if (token) headers['X-NerdCore-Token'] = token;
+    return headers;
+  }
+
   async function addonUpdateRelayHealthCheck() {
     try {
-      const response = await fetch(addonUpdateRelayUrl('health'), { method: 'GET', cache: 'no-store' });
+      const response = await fetch(addonUpdateRelayUrl('health'), {
+        method: 'GET',
+        cache: 'no-store',
+        headers: addonUpdateRelayHeaders(),
+      });
       if (!response || !response.ok) return false;
       const payload = await response.json().catch(() => null);
       if (!payload || payload.ok !== true) return false;
@@ -8253,8 +8291,8 @@
       const response = await fetch(addonUpdateRelayUrl('v1/update'), {
         method: 'POST',
         headers: {
+          ...addonUpdateRelayHeaders(),
           'Content-Type': 'application/json',
-          Accept: 'application/json',
         },
         body: JSON.stringify({
           repository: parts.repository,
@@ -12604,7 +12642,7 @@
         id: 'visuals',
         tabKey: 'settings_tabs_visuals',
         titleKey: 'settings_group_visuals',
-        sectionIds: ['dash_settings_brand_logo_section', 'dash_settings_group_logo_section'],
+        sectionIds: ['dash_settings_brand_logo_section', 'dash_settings_group_logo_section', 'dash_rankings_full_section'],
       },
       {
         id: 'compat',
@@ -12804,8 +12842,10 @@
     });
   }
 
-  function initAiSettingsOverlay() {
-    if (NERDCORE_DISABLE_LEGACY_SETTINGS) return;
+  function initAiSettingsOverlay(optionsInput = {}) {
+    const options = optionsInput && typeof optionsInput === 'object' ? optionsInput : {};
+    const force = options.force === true;
+    if (NERDCORE_DISABLE_LEGACY_SETTINGS && !force) return;
     if (document.getElementById('dash_ai_settings_overlay')) return;
     const overlay = document.createElement('div');
     overlay.id = 'dash_ai_settings_overlay';
@@ -13562,7 +13602,7 @@
 
   function openAiSettingsOverlay() {
     if (NERDCORE_DISABLE_LEGACY_SETTINGS && NERDCORE && typeof NERDCORE.openSettingsPage === 'function') {
-      NERDCORE.openSettingsPage();
+      NERDCORE.openSettingsPage('statnerd');
       return;
     }
     if (!NERDCORE_DISABLE_LEGACY_SETTINGS) initAiSettingsOverlay();
@@ -13570,6 +13610,44 @@
     syncAiSettingsButton();
     const overlay = document.getElementById('dash_ai_settings_overlay');
     if (overlay) overlay.classList.remove('d-none');
+  }
+
+  function isStatNerdSettingsPage() {
+    const view = clean(window.Grocy && window.Grocy.View ? window.Grocy.View : '').toLowerCase();
+    if (view !== 'stocksettings') return false;
+    const params = new URLSearchParams(window.location.search || '');
+    return params.get('statnerd') === '1';
+  }
+
+  function renderStatNerdSettingsPage() {
+    if (!isStatNerdSettingsPage()) return false;
+    const pageContent = document.getElementById('page-content');
+    if (!pageContent) return false;
+
+    pageContent.innerHTML = `
+      <div class="row">
+        <div class="col">
+          <h2 class="title">${escapeHtml(t('ai_settings_title'))}</h2>
+          <div class="small text-muted mb-2">${escapeHtml(t('settings_group_update'))}</div>
+        </div>
+      </div>
+      <hr class="my-2">
+      <div id="dash_statnerd_settings_page_host"></div>
+    `;
+
+    initAiSettingsOverlay({ force: true });
+    fillAiSettingsForm();
+    syncAiSettingsButton();
+    const overlay = document.getElementById('dash_ai_settings_overlay');
+    const host = document.getElementById('dash_statnerd_settings_page_host');
+    if (overlay && host) {
+      overlay.classList.remove('d-none');
+      overlay.classList.add('dash-ai-settings-inline');
+      host.appendChild(overlay);
+      const closeBtn = overlay.querySelector('#dash_ai_close');
+      if (closeBtn) closeBtn.classList.add('d-none');
+    }
+    return true;
   }
 
   function openProduct(productId) {
@@ -28666,16 +28744,21 @@
       }
     };
 
-    // Product helper features are now maintained in the dedicated ProductHelper addon.
-
-    const table = document.getElementById('stock-overview-table');
-    if (!table) return;
-
     safeRun('loadAiSettings', () => loadAiSettings());
     safeRun('loadBrandLogoSettings', () => loadBrandLogoSettings());
     safeRun('loadUiState', () => loadUiState());
     safeRun('loadAddonCompatibilityState', () => loadAddonCompatibilityState());
     safeRun('loadAddonUpdateState', () => loadAddonUpdateState());
+
+    if (safeRun('renderStatNerdSettingsPage', () => renderStatNerdSettingsPage()) === true) {
+      return;
+    }
+
+    const table = document.getElementById('stock-overview-table');
+    if (!table) return;
+
+    // Product helper features are now maintained in the dedicated ProductHelper addon.
+
     safeRun('initTabs', () => initTabs());
     safeRun('registerFacetFilter', () => registerFacetFilter());
     safeRun('initDashboard', () => initDashboard());
