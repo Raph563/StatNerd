@@ -10,7 +10,7 @@
   NERDCORE.registerAddon({
     id: 'statnerd',
     name: 'StatNerd',
-    version: '4.1.2',
+    version: '4.2.0',
     settingsSection: 'statnerd',
     settingsTitle: 'StatNerd',
     settingsIcon: 'fa-chart-line',
@@ -18,6 +18,8 @@
   const NERDCORE_DISABLE_LEGACY_SETTINGS = typeof NERDCORE.isLegacySettingsDisabled === 'function'
     ? !!NERDCORE.isLegacySettingsDisabled()
     : true;
+  const DASH_REPORT_QUERY_KEY = 'nerdstats';
+  const DASH_REPORT_QUERY_VALUE = 'report';
 
   const S = {
     active: 'all',
@@ -740,7 +742,7 @@
   const USER_DATA_TRANSFER_SCHEMA = 'statnerd-user-data';
   const USER_DATA_TRANSFER_SCHEMA_VERSION = 1;
   const USER_DATA_TRANSFER_STORAGE_PREFIX = 'grocy_dash_';
-  const ADDON_RUNTIME_VERSION = '4.1.2';
+  const ADDON_RUNTIME_VERSION = '4.2.0';
   const ADDON_UPDATE_DEFAULT_REPOSITORY = 'Raph563/StatNerd';
   const ADDON_UPDATE_DEFAULT_LOCAL_ROOT = 'C:\\Users\\Admin\\Documents\\Docker\\grocy';
   const ADDON_UPDATE_RELAY_BASE_URL = (NERDCORE && typeof NERDCORE.getUpdateApiBase === 'function')
@@ -4238,6 +4240,108 @@
     scheduleRender();
   }
 
+  function isDashboardReportMode() {
+    const params = new URLSearchParams(window.location.search || '');
+    const mode = clean(params.get(DASH_REPORT_QUERY_KEY) || '').toLowerCase();
+    return mode === DASH_REPORT_QUERY_VALUE;
+  }
+
+  function buildDashboardReportUrl() {
+    let baseHref = '/stockoverview';
+    try {
+      if (typeof U === 'function') {
+        const built = clean(U('/stockoverview') || '');
+        if (built) baseHref = built;
+      }
+    } catch (_err) {}
+
+    try {
+      const url = new URL(baseHref, window.location.origin);
+      url.searchParams.set(DASH_REPORT_QUERY_KEY, DASH_REPORT_QUERY_VALUE);
+      return url.toString();
+    } catch (_err) {
+      const fallback = new URL('/stockoverview', window.location.origin);
+      fallback.searchParams.set(DASH_REPORT_QUERY_KEY, DASH_REPORT_QUERY_VALUE);
+      return fallback.toString();
+    }
+  }
+
+  function findStockReportsMenu() {
+    const root = document.querySelector('.title-related-links #related-links');
+    if (!root) return null;
+
+    const markerPaths = ['/stockreports/spendings', '/locationcontentsheet', '/stocklocations'];
+    const menus = Array.from(root.querySelectorAll('.dropdown-menu'));
+    for (const menu of menus) {
+      const links = Array.from(menu.querySelectorAll('a[href]'));
+      const hasMarker = links.some((link) => {
+        const href = clean(link.getAttribute('href') || '').toLowerCase();
+        return markerPaths.some((marker) => href.includes(marker));
+      });
+      if (hasMarker) return menu;
+    }
+
+    const toggles = Array.from(root.querySelectorAll('a.dropdown-toggle, button.dropdown-toggle'));
+    for (const toggle of toggles) {
+      const text = norm(toggle.textContent || '');
+      if (!text.includes('rapport') && !text.includes('report')) continue;
+      const wrap = toggle.closest('.dropdown');
+      const menu = wrap ? wrap.querySelector('.dropdown-menu') : null;
+      if (menu) return menu;
+      const sibling = toggle.nextElementSibling;
+      if (sibling && sibling.classList && sibling.classList.contains('dropdown-menu')) return sibling;
+    }
+
+    return null;
+  }
+
+  function injectDashboardReportMenuItem() {
+    if (document.getElementById('dash_report_menu_entry')) return;
+    const menu = findStockReportsMenu();
+    if (!menu) return;
+    if (menu.querySelector('#dash_report_menu_entry,[data-nerdstats-report-entry="1"]')) return;
+
+    const item = document.createElement('a');
+    item.className = 'dropdown-item';
+    item.id = 'dash_report_menu_entry';
+    item.href = buildDashboardReportUrl();
+    item.textContent = t('dash_title');
+    item.setAttribute('data-nerdstats-report-entry', '1');
+    menu.appendChild(item);
+  }
+
+  function markDashboardReportHidden(node) {
+    if (!node) return;
+    node.classList.add('dash-report-hidden');
+  }
+
+  function applyDashboardReportModeLayout() {
+    if (!isDashboardReportMode()) return;
+    if (document.body) document.body.classList.add('dash-report-page');
+
+    setDashboardCollapsed(false, { ensureReady: true });
+    setDashboardView('stats');
+
+    markDashboardReportHidden(document.getElementById('table-filter-row'));
+    markDashboardReportHidden(document.getElementById('stock-overview-custom-tabs'));
+
+    const infoMissing = document.getElementById('info-missing-products');
+    if (infoMissing) {
+      markDashboardReportHidden(infoMissing.closest('.border-top.border-bottom') || infoMissing);
+    }
+
+    const table = document.getElementById('stock-overview-table');
+    if (table) {
+      markDashboardReportHidden(table.closest('.row') || table);
+    }
+
+    const pageTitle = document.querySelector('.title-related-links .title');
+    if (pageTitle) pageTitle.textContent = t('dash_title');
+
+    const toggle = document.getElementById('dash_toggle');
+    if (toggle) toggle.classList.add('d-none');
+  }
+
   function setDashboardCollapsed(collapsed, options = {}) {
     const body = document.getElementById('dash_body');
     const toggle = document.getElementById('dash_toggle');
@@ -4304,7 +4408,9 @@
     setActive('all');
     closeChartOverlay();
     // On targeted stock views (brand/category), collapse analytics to keep results focused.
-    setDashboardCollapsed(true);
+    if (!isDashboardReportMode()) {
+      setDashboardCollapsed(true);
+    }
 
     const d = dt();
     if (d) {
@@ -4794,6 +4900,17 @@
     const style = document.createElement('style');
     style.id = 'dash-custom-styles';
     style.textContent = `
+      body.dash-report-page #stock-analytics-dashboard {
+        margin-top: 0.45rem;
+      }
+      body.dash-report-page .dash-report-hidden,
+      body.dash-report-page #table-filter-row,
+      body.dash-report-page #stock-overview-custom-tabs {
+        display: none !important;
+      }
+      body.dash-report-page #stock-analytics-dashboard #dash_toggle {
+        display: none !important;
+      }
       #stock-analytics-dashboard .card {
         border: 1px solid rgba(255,255,255,0.12);
         box-shadow: 0 10px 24px rgba(0,0,0,0.22);
@@ -28819,14 +28936,25 @@
       return;
     }
 
+    const view = clean(window.Grocy && window.Grocy.View ? window.Grocy.View : '').toLowerCase();
+    if (view !== 'stockoverview') return;
+    safeRun('injectDashboardReportMenuItem', () => injectDashboardReportMenuItem());
+
     const table = document.getElementById('stock-overview-table');
     if (!table) return;
+    const reportMode = isDashboardReportMode();
+    if (document.body) document.body.classList.toggle('dash-report-page', reportMode);
 
     // Product helper features are now maintained in the dedicated ProductHelper addon.
 
-    safeRun('initTabs', () => initTabs());
     safeRun('registerFacetFilter', () => registerFacetFilter());
+    if (!reportMode) {
+      safeRun('initTabs', () => initTabs());
+      return;
+    }
+
     safeRun('initDashboard', () => initDashboard());
+    safeRun('applyDashboardReportModeLayout', () => applyDashboardReportModeLayout());
     safeRun('bindDraw', () => bindDraw());
 
     const search = document.getElementById('search');

@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.2.0] - 2026-02-20
+
+### Added
+- Dedicated StatNerd report mode on `/stockoverview?nerdstats=report`.
+- New `Rapports` dropdown entry `Statistiques & graphiques` that opens the dedicated report mode.
+
+### Changed
+- Stock overview default mode (`/stockoverview`) no longer initializes the StatNerd dashboard block.
+- Report mode now displays dashboard-only layout (stock table, tabs, filters, status bar hidden).
+- In report mode, stock facet navigation no longer auto-collapses the dashboard.
+
 ## [4.1.2] - 2026-02-20
 
 ### Fixed
