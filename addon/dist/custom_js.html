@@ -10,7 +10,7 @@
   NERDCORE.registerAddon({
     id: 'statnerd',
     name: 'StatNerd',
-    version: '4.2.0',
+    version: '4.3.0',
     settingsSection: 'statnerd',
     settingsTitle: 'StatNerd',
     settingsIcon: 'fa-chart-line',
@@ -132,6 +132,7 @@
     hoverPreviewContextKey: '',
     hoverPreviewRenderToken: 0,
     hoverPreviewPendingContexts: new Set(),
+    hoverPreviewAccentColor: '',
     hoverRecipeMapByProductId: new Map(),
     hoverRecipeMapLoaded: false,
     hoverRecipeMapPromise: null,
@@ -144,6 +145,9 @@
     kpiLifetimeTotals: null,
     kpiLifetimeTotalsPromise: null,
     overlayHoverClearTimer: null,
+    overlayRedrawToken: 0,
+    renderHoldCount: 0,
+    dashboardWarnCooldownByKey: new Map(),
     productImageSearchRefresh: null,
     productImageSearchBarcodeObserver: null,
     productImageSearchFocusHandler: null,
@@ -742,7 +746,7 @@
   const USER_DATA_TRANSFER_SCHEMA = 'statnerd-user-data';
   const USER_DATA_TRANSFER_SCHEMA_VERSION = 1;
   const USER_DATA_TRANSFER_STORAGE_PREFIX = 'grocy_dash_';
-  const ADDON_RUNTIME_VERSION = '4.2.0';
+  const ADDON_RUNTIME_VERSION = '4.3.0';
   const ADDON_UPDATE_DEFAULT_REPOSITORY = 'Raph563/StatNerd';
   const ADDON_UPDATE_DEFAULT_LOCAL_ROOT = 'C:\\Users\\Admin\\Documents\\Docker\\grocy';
   const ADDON_UPDATE_RELAY_BASE_URL = (NERDCORE && typeof NERDCORE.getUpdateApiBase === 'function')
@@ -5256,6 +5260,16 @@
       #stock-analytics-dashboard .dash-chart-card {
         height: auto;
       }
+      #stock-analytics-dashboard #dash_body.dash-pending-data .dash-chart-card {
+        opacity: 0.72;
+      }
+      #stock-analytics-dashboard #dash_body.dash-pending-data .dash-chart-actions {
+        pointer-events: none;
+        opacity: 0.66;
+      }
+      #stock-analytics-dashboard #dash_body.dash-pending-data #dash_insights {
+        opacity: 0.74;
+      }
       #stock-analytics-dashboard .row.align-items-start > [class*="col-"] {
         align-self: flex-start;
       }
@@ -5280,35 +5294,39 @@
         margin: 0;
       }
       #stock-analytics-dashboard .dash-chart-actions {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+        justify-items: end;
         width: max-content;
-        max-width: 100%;
-        justify-self: end;
+        max-width: min(100%, 30rem);
         gap: 0.28rem;
         margin: 0;
       }
       #stock-analytics-dashboard .dash-chart-actions-row {
         display: flex;
-        width: auto;
-        max-width: 100%;
+        width: 100%;
         align-items: center;
         justify-content: flex-end;
         align-content: center;
         flex-wrap: wrap;
         gap: 0.28rem;
       }
-      #stock-analytics-dashboard .dash-chart-actions-row-top {
+      #stock-analytics-dashboard .dash-chart-actions-row-main,
+      #stock-analytics-dashboard .dash-chart-actions-row-secondary {
         min-height: 1.72rem;
-        flex-wrap: nowrap;
       }
-      #stock-analytics-dashboard .dash-chart-actions-row-bottom {
-        min-height: 1.72rem;
-        justify-content: flex-end;
+      #stock-analytics-dashboard .dash-chart-actions[data-chart-layout="single-row"] .dash-chart-actions-row-secondary {
+        display: none;
+      }
+      #stock-analytics-dashboard .dash-chart-actions-terminal {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
       }
       #stock-analytics-dashboard .dash-chart-actions .btn-group,
-      #stock-analytics-dashboard .dash-chart-actions .dash-chart-type-group {
+      #stock-analytics-dashboard .dash-chart-actions .dash-chart-type-group,
+      #stock-analytics-dashboard .dash-chart-actions .dash-chart-actions-terminal {
         margin: 0;
         border-radius: 0.44rem;
         box-shadow: 0 3px 8px rgba(0,0,0,0.16);
@@ -5407,6 +5425,11 @@
       #stock-analytics-dashboard .dash-chart-actions .btn.chart-ctl-active:hover {
         color: #cfe2ff;
       }
+      @media (max-width: 1399.98px) {
+        #stock-analytics-dashboard .dash-chart-actions {
+          max-width: min(100%, 27rem);
+        }
+      }
       @media (max-width: 1199.98px) {
         #stock-analytics-dashboard .dash-chart-head {
           grid-template-columns: 1fr;
@@ -5415,10 +5438,18 @@
         #stock-analytics-dashboard .dash-chart-actions {
           width: 100%;
           max-width: none;
-          align-items: flex-start;
+          justify-items: start;
         }
         #stock-analytics-dashboard .dash-chart-actions-row {
           justify-content: flex-start;
+        }
+      }
+      @media (max-width: 767.98px) {
+        #stock-analytics-dashboard .dash-chart-actions-row {
+          gap: 0.24rem;
+        }
+        #stock-analytics-dashboard .dash-chart-actions .btn {
+          min-height: 1.66rem;
         }
       }
       #stock-analytics-dashboard #dash_view_stats.active,
@@ -6598,21 +6629,32 @@
         background: rgba(13,110,253,0.2);
       }
       #dash_chart_overlay .dash-overlay-controls {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 0.32rem;
+        display: grid;
+        gap: 0.34rem;
         border: 1px solid rgba(255,255,255,0.16);
         border-radius: 0.55rem;
         padding: 0.38rem 0.42rem;
         background: linear-gradient(150deg, rgba(13,110,253,0.14), rgba(255,255,255,0.025));
         box-shadow: 0 8px 18px rgba(0,0,0,0.17);
       }
+      #dash_chart_overlay .dash-overlay-controls-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.32rem;
+      }
+      #dash_chart_overlay .dash-overlay-controls-main,
+      #dash_chart_overlay .dash-overlay-controls-secondary {
+        justify-content: flex-start;
+      }
+      #dash_chart_overlay .dash-overlay-controls[data-chart-layout="single-row"] .dash-overlay-controls-secondary {
+        display: none;
+      }
       #dash_chart_overlay .dash-overlay-controls-label {
         font-size: 0.82rem;
         font-weight: 600;
         color: rgba(207,226,255,0.88);
-        margin-right: 0.2rem;
+        margin-right: 0;
       }
       #dash_chart_overlay .dash-overlay-controls .btn-group {
         box-shadow: 0 3px 8px rgba(0,0,0,0.16);
@@ -6699,6 +6741,24 @@
         color: #cfe2ff;
         background: rgba(13,110,253,0.2);
       }
+      @media (max-width: 767.98px) {
+        #dash_chart_overlay .dash-overlay-controls {
+          padding: 0.34rem 0.36rem;
+          gap: 0.28rem;
+        }
+        #dash_chart_overlay .dash-overlay-controls-label {
+          width: 100%;
+          margin-bottom: 0.06rem;
+        }
+        #dash_chart_overlay .dash-overlay-controls-row {
+          width: 100%;
+          gap: 0.24rem;
+        }
+        #dash_chart_overlay .dash-overlay-controls .btn {
+          min-height: 1.66rem;
+          font-size: 0.8rem;
+        }
+      }
       #dash_chart_overlay .dash-overlay-box-body {
         max-height: 21vh;
         overflow: auto;
@@ -6725,6 +6785,7 @@
         border-color: var(--dash-active-color, rgba(13,110,253,0.55));
         background: linear-gradient(150deg, var(--dash-active-color-faint, rgba(13,110,253,0.18)), rgba(255,255,255,0.02));
         box-shadow: 0 0 0 1px var(--dash-active-color-soft, rgba(13,110,253,0.24)) inset, 0 6px 14px rgba(0,0,0,0.2);
+        color: var(--dash-active-text-color, inherit);
         outline: none;
       }
       #dash_chart_overlay .dash-overlay-insight-bullet {
@@ -6735,6 +6796,16 @@
       #dash_chart_overlay .dash-overlay-insight-text {
         flex: 1;
         line-height: 1.32;
+      }
+      #dash_chart_overlay .dash-overlay-insight-item[data-detail-index]:hover .dash-overlay-insight-bullet,
+      #dash_chart_overlay .dash-overlay-insight-item[data-detail-index]:focus .dash-overlay-insight-bullet,
+      #dash_chart_overlay .dash-overlay-insight-item.is-active .dash-overlay-insight-bullet {
+        color: var(--dash-active-muted-color, #cfe2ff);
+      }
+      #dash_chart_overlay .dash-overlay-insight-item[data-detail-index]:hover .dash-overlay-insight-text,
+      #dash_chart_overlay .dash-overlay-insight-item[data-detail-index]:focus .dash-overlay-insight-text,
+      #dash_chart_overlay .dash-overlay-insight-item.is-active .dash-overlay-insight-text {
+        color: var(--dash-active-text-color, #e8f1ff);
       }
       #dash_chart_overlay .dash-overlay-chart-wrap {
         border: 1px solid rgba(255,255,255,0.16);
@@ -6759,6 +6830,7 @@
         border-color: var(--dash-active-color, rgba(13,110,253,0.55));
         background: linear-gradient(150deg, var(--dash-active-color-faint, rgba(13,110,253,0.18)), rgba(255,255,255,0.02));
         box-shadow: 0 0 0 1px var(--dash-active-color-soft, rgba(13,110,253,0.22)) inset, 0 6px 14px rgba(0,0,0,0.18);
+        color: var(--dash-active-text-color, inherit);
       }
       #dash_chart_overlay .dash-overlay-legend-dot {
         width: 0.75rem;
@@ -6772,13 +6844,24 @@
         line-height: 1.25;
       }
       #dash_chart_overlay .dash-overlay-legend-value {
-        opacity: 0.88;
+        color: rgba(211,223,236,0.9);
         font-size: 0.86rem;
+      }
+      #dash_chart_overlay .dash-overlay-legend-item[data-detail-index]:hover .dash-overlay-legend-main,
+      #dash_chart_overlay .dash-overlay-legend-item[data-detail-index]:focus .dash-overlay-legend-main,
+      #dash_chart_overlay .dash-overlay-legend-item.is-active .dash-overlay-legend-main {
+        color: var(--dash-active-text-color, #ebf3ff);
+      }
+      #dash_chart_overlay .dash-overlay-legend-item[data-detail-index]:hover .dash-overlay-legend-value,
+      #dash_chart_overlay .dash-overlay-legend-item[data-detail-index]:focus .dash-overlay-legend-value,
+      #dash_chart_overlay .dash-overlay-legend-item.is-active .dash-overlay-legend-value {
+        color: var(--dash-active-muted-color, #d5e4fb);
       }
       #dash_chart_overlay_details {
         white-space: normal;
         line-height: 1.35;
         padding: 0.1rem;
+        min-height: 5.8rem;
         transition: max-height 0.2s ease;
       }
       #dash_chart_overlay .dash-detail-list {
@@ -6803,6 +6886,7 @@
         border-color: var(--dash-active-color, rgba(13,110,253,0.72));
         background: linear-gradient(150deg, var(--dash-active-color-faint, rgba(13,110,253,0.2)), rgba(255,255,255,0.03));
         box-shadow: 0 0 0 1px var(--dash-active-color-soft, rgba(13,110,253,0.24)) inset, 0 8px 16px rgba(0,0,0,0.24);
+        color: var(--dash-active-text-color, inherit);
       }
       #dash_chart_overlay .dash-detail-item:focus {
         outline: none;
@@ -6850,6 +6934,12 @@
       #dash_chart_overlay .dash-detail-text {
         line-height: 1.34;
         display: block;
+        color: rgba(220,230,241,0.95);
+      }
+      #dash_chart_overlay .dash-detail-item:hover .dash-detail-text,
+      #dash_chart_overlay .dash-detail-item:focus .dash-detail-text,
+      #dash_chart_overlay .dash-detail-item.is-active .dash-detail-text {
+        color: var(--dash-active-text-color, #eef5ff);
       }
       #dash_chart_overlay .dash-detail-thumbs {
         margin-left: auto;
@@ -6891,7 +6981,7 @@
         box-shadow: 0 0 0 2px var(--dash-active-color-soft, rgba(13,110,253,0.3)), 0 0 12px var(--dash-active-color-soft, rgba(13,110,253,0.3));
       }
       #dash_chart_overlay .dash-detail-item.is-active .dash-detail-rank {
-        color: var(--dash-active-color, #9ec5fe);
+        color: var(--dash-active-text-color, #eaf3ff);
         text-shadow: 0 0 10px var(--dash-active-color-soft, rgba(13,110,253,0.3));
       }
       #dash_chart_overlay .dash-focus-header {
@@ -6931,6 +7021,10 @@
         pointer-events: none;
         user-select: none;
         backdrop-filter: blur(2px);
+        --dash-hover-accent: rgba(102,181,255,0.96);
+        --dash-hover-accent-soft: rgba(102,181,255,0.2);
+        --dash-hover-text-color: rgba(236,245,255,0.98);
+        --dash-hover-muted-color: rgba(208,223,239,0.94);
       }
       #dash_hover_preview .dash-hover-preview-head {
         display: flex;
@@ -6941,7 +7035,7 @@
       }
       #dash_hover_preview .dash-hover-preview-title {
         font-weight: 700;
-        color: #e8f1ff;
+        color: var(--dash-hover-text-color, #e8f1ff);
         letter-spacing: 0.01em;
       }
       #dash_hover_preview .dash-hover-preview-count {
@@ -6953,7 +7047,7 @@
         font-size: 0.69rem;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: rgba(160,205,255,0.95);
+        color: var(--dash-hover-accent, rgba(160,205,255,0.95));
         font-weight: 700;
       }
       #dash_hover_preview .dash-hover-preview-list {
@@ -7036,9 +7130,9 @@
         gap: 0.2rem;
         padding: 0.1rem 0.3rem;
         border-radius: 0.35rem;
-        border: 1px solid rgba(255,255,255,0.15);
-        background: rgba(255,255,255,0.045);
-        color: rgba(218,229,241,0.95);
+        border: 1px solid var(--dash-hover-accent-soft, rgba(255,255,255,0.15));
+        background: linear-gradient(145deg, var(--dash-hover-accent-soft, rgba(255,255,255,0.05)), rgba(255,255,255,0.03));
+        color: var(--dash-hover-text-color, rgba(218,229,241,0.95));
         font-size: 0.7rem;
         line-height: 1.1;
       }
@@ -7057,9 +7151,9 @@
         gap: 0.3rem;
         padding: 0.08rem 0.28rem;
         border-radius: 0.34rem;
-        border: 1px solid rgba(255,255,255,0.15);
-        background: rgba(255,255,255,0.045);
-        color: rgba(226,237,248,0.98);
+        border: 1px solid var(--dash-hover-accent-soft, rgba(255,255,255,0.15));
+        background: linear-gradient(145deg, var(--dash-hover-accent-soft, rgba(255,255,255,0.05)), rgba(255,255,255,0.03));
+        color: var(--dash-hover-text-color, rgba(226,237,248,0.98));
         font-size: 0.71rem;
       }
       #dash_hover_preview .dash-hover-preview-range .fa-arrow-down {
@@ -7071,7 +7165,7 @@
       #dash_hover_preview .dash-hover-preview-range-currency {
         margin-left: 0.1rem;
         font-weight: 700;
-        color: rgba(183,223,255,0.98);
+        color: var(--dash-hover-accent, rgba(183,223,255,0.98));
       }
       #dash_hover_preview .dash-hover-preview-due {
         font-size: 0.74rem;
@@ -13937,7 +14031,8 @@
       // Never hide this block: only change its vertical capacity.
       details.classList.remove('d-none');
       details.style.overflow = 'auto';
-      details.style.maxHeight = normalized ? '44vh' : '16vh';
+      details.style.minHeight = normalized ? '9.5rem' : '5.8rem';
+      details.style.maxHeight = normalized ? '42vh' : '18vh';
     }
     const btn = document.getElementById('dash_chart_overlay_details_toggle');
     if (btn) {
@@ -14588,6 +14683,12 @@
     label.textContent = t('overlay_controls_label');
     wrap.appendChild(label);
 
+    const mainRow = document.createElement('div');
+    mainRow.className = 'dash-overlay-controls-row dash-overlay-controls-main';
+
+    const secondaryRow = document.createElement('div');
+    secondaryRow.className = 'dash-overlay-controls-row dash-overlay-controls-secondary';
+
     const sortGroup = document.createElement('div');
     sortGroup.className = 'btn-group btn-group-sm';
     const sortDescMeta = sortControlMeta('desc');
@@ -14608,7 +14709,7 @@
     });
     sortGroup.appendChild(sortDesc);
     sortGroup.appendChild(sortAsc);
-    wrap.appendChild(sortGroup);
+    mainRow.appendChild(sortGroup);
 
     if (chartSupportsLimit(chartId)) {
       const limitGroup = document.createElement('div');
@@ -14633,12 +14734,12 @@
 
       limitGroup.appendChild(allBtn);
       limitGroup.appendChild(topBtn);
-      wrap.appendChild(limitGroup);
+      mainRow.appendChild(limitGroup);
     }
 
     const qtyModeGroupOverlay = buildQtyModeControlGroup(chartId);
     if (qtyModeGroupOverlay) {
-      wrap.appendChild(qtyModeGroupOverlay);
+      secondaryRow.appendChild(qtyModeGroupOverlay);
     }
 
     if (chartSupportsIncludeZero(chartId)) {
@@ -14652,11 +14753,19 @@
         refreshSingleChart(chartId);
       });
       zeroGroup.appendChild(zeroBtn);
-      wrap.appendChild(zeroGroup);
+      if (qtyModeGroupOverlay) {
+        secondaryRow.appendChild(zeroGroup);
+      } else {
+        mainRow.appendChild(zeroGroup);
+      }
     }
 
     const typeGroupOverlay = buildChartTypeControlGroup(chartId, false);
-    if (typeGroupOverlay) wrap.appendChild(typeGroupOverlay);
+    if (typeGroupOverlay) mainRow.appendChild(typeGroupOverlay);
+
+    wrap.dataset.chartLayout = secondaryRow.childElementCount > 0 ? 'two-row' : 'single-row';
+    wrap.appendChild(mainRow);
+    if (secondaryRow.childElementCount > 0) wrap.appendChild(secondaryRow);
 
     root.appendChild(wrap);
     syncChartControls(chartId);
@@ -14681,14 +14790,14 @@
       const controls = document.createElement('div');
       controls.className = 'dash-chart-actions';
       controls.dataset.chartControls = chartId;
-      const controlsRowTop = document.createElement('div');
-      controlsRowTop.className = 'dash-chart-actions-row dash-chart-actions-row-top';
-      const controlsRowBottom = document.createElement('div');
-      controlsRowBottom.className = 'dash-chart-actions-row dash-chart-actions-row-bottom';
+      const controlsRowMain = document.createElement('div');
+      controlsRowMain.className = 'dash-chart-actions-row dash-chart-actions-row-main';
+      const controlsRowSecondary = document.createElement('div');
+      controlsRowSecondary.className = 'dash-chart-actions-row dash-chart-actions-row-secondary';
 
       const typeGroupInline = buildChartTypeControlGroup(chartId, true);
       if (typeGroupInline) {
-        controlsRowTop.appendChild(typeGroupInline);
+        controlsRowMain.appendChild(typeGroupInline);
       }
 
       const sortGroup = document.createElement('div');
@@ -14711,7 +14820,7 @@
       });
       sortGroup.appendChild(sortDesc);
       sortGroup.appendChild(sortAsc);
-      controlsRowTop.appendChild(sortGroup);
+      controlsRowMain.appendChild(sortGroup);
 
       if (chartSupportsLimit(chartId)) {
         const limitGroup = document.createElement('div');
@@ -14734,12 +14843,12 @@
         });
         limitGroup.appendChild(allBtn);
         limitGroup.appendChild(topBtn);
-        controlsRowTop.appendChild(limitGroup);
+        controlsRowMain.appendChild(limitGroup);
       }
 
       const qtyModeGroup = buildQtyModeControlGroup(chartId);
       if (qtyModeGroup) {
-        controlsRowBottom.appendChild(qtyModeGroup);
+        controlsRowSecondary.appendChild(qtyModeGroup);
       }
 
       if (chartSupportsIncludeZero(chartId)) {
@@ -14753,8 +14862,15 @@
           refreshSingleChart(chartId);
         });
         zeroGroup.appendChild(zeroBtn);
-        controlsRowBottom.appendChild(zeroGroup);
+        if (qtyModeGroup) {
+          controlsRowSecondary.appendChild(zeroGroup);
+        } else {
+          controlsRowMain.appendChild(zeroGroup);
+        }
       }
+
+      const terminal = document.createElement('div');
+      terminal.className = 'dash-chart-actions-terminal';
 
       const expandBtn = document.createElement('button');
       expandBtn.type = 'button';
@@ -14763,10 +14879,17 @@
       expandBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
       expandBtn.title = t('ctl_expand_title');
       expandBtn.addEventListener('click', () => openChartOverlay(chartId));
-      controlsRowBottom.appendChild(expandBtn);
+      terminal.appendChild(expandBtn);
 
-      if (controlsRowTop.childElementCount > 0) controls.appendChild(controlsRowTop);
-      if (controlsRowBottom.childElementCount > 0) controls.appendChild(controlsRowBottom);
+      if (controlsRowSecondary.childElementCount > 0) {
+        controlsRowSecondary.appendChild(terminal);
+      } else {
+        controlsRowMain.appendChild(terminal);
+      }
+
+      controls.dataset.chartLayout = controlsRowSecondary.childElementCount > 0 ? 'two-row' : 'single-row';
+      if (controlsRowMain.childElementCount > 0) controls.appendChild(controlsRowMain);
+      if (controlsRowSecondary.childElementCount > 0) controls.appendChild(controlsRowSecondary);
 
       title.appendChild(controls);
       syncChartControls(chartId);
@@ -15535,6 +15658,7 @@
     if (!c) return;
     destroyChart(id);
     S.charts[id] = new window.Chart(c.getContext('2d'), cfg);
+    scheduleCompactChartStabilize(S.charts[id]);
     if (!c.dataset.hoverPreviewBound) {
       c.addEventListener('mouseleave', hideChartHoverPreview);
       c.dataset.hoverPreviewBound = '1';
@@ -16077,6 +16201,48 @@
     }
 
     return response.json();
+  }
+
+  function errorText(errorInput = null) {
+    if (!errorInput) return '';
+    if (typeof errorInput === 'string') return clean(errorInput);
+    if (typeof errorInput.message === 'string') return clean(errorInput.message);
+    return clean(String(errorInput));
+  }
+
+  function httpStatusFromError(errorInput = null) {
+    const message = errorText(errorInput);
+    if (!message) return 0;
+    const match = message.match(/\bHTTP\s+(\d{3})\b/i);
+    return match ? parseInt(match[1], 10) : 0;
+  }
+
+  function isHttpErrorStatus(errorInput = null, statusesInput = []) {
+    const statuses = Array.isArray(statusesInput) ? statusesInput : [];
+    const status = httpStatusFromError(errorInput);
+    return status > 0 && statuses.includes(status);
+  }
+
+  function dashboardWarn(keyInput, messageInput, errorInput = null, optionsInput = null) {
+    const key = clean(keyInput || '');
+    if (!key) return;
+    const message = clean(messageInput || '');
+    const options = optionsInput && typeof optionsInput === 'object' ? optionsInput : {};
+    const cooldownMs = Math.max(0, Math.floor(num(options.cooldownMs || 0)));
+    const now = Date.now();
+    const previous = num(S.dashboardWarnCooldownByKey.get(key));
+    if (cooldownMs > 0 && previous > 0 && (now - previous) < cooldownMs) return;
+    S.dashboardWarnCooldownByKey.set(key, now);
+    if (!message) return;
+    if (errorInput) {
+      console.warn(message, errorInput);
+      return;
+    }
+    console.warn(message);
+  }
+
+  function isOptionalApiFailure(errorInput = null) {
+    return isHttpErrorStatus(errorInput, [400, 401, 403, 404, 405]);
   }
 
   function extractArray(payload) {
@@ -16643,8 +16809,16 @@
       S.apiBrandFailures = result.failed;
       return result.map;
     } catch (error) {
-      console.warn('Dashboard: impossible de charger les marques via userfields', error);
-      S.apiBrandMethod = 'failed';
+      const optionalFailure = isOptionalApiFailure(error);
+      S.apiBrandMethod = optionalFailure ? 'unsupported' : 'failed';
+      if (!optionalFailure) {
+        dashboardWarn(
+          'api-brand-userfields',
+          'Dashboard: impossible de charger les marques via userfields',
+          error,
+          { cooldownMs: 60000 }
+        );
+      }
     }
     return map;
   }
@@ -16725,7 +16899,12 @@
       S.apiLoaded = S.apiStockByProductId.size > 0 || S.apiBrandByProductId.size > 0;
       return true;
     })().catch((error) => {
-      console.warn('Dashboard: chargement API impossible, fallback DOM', error);
+      dashboardWarn(
+        'api-refresh-fallback',
+        'Dashboard: chargement API impossible, fallback DOM',
+        error,
+        { cooldownMs: 30000 }
+      );
       S.apiLoaded = false;
       return false;
     }).finally(() => {
@@ -17040,6 +17219,7 @@
     S.fullChart = new window.Chart(canvas.getContext('2d'), cfg);
     captureOverlayChartVisualBase(S.fullChart);
     applyOverlayChartVisualHighlight(-1);
+    scheduleOverlayChartStabilize(S.fullChart);
     if (!canvas.dataset.overlayHoverResetBound) {
       canvas.addEventListener('mouseleave', () => {
         cancelOverlayHoverClear();
@@ -17458,19 +17638,155 @@
     return border ? setColorAlpha(border, 1) : (background ? setColorAlpha(background, 1) : '#0d6efd');
   }
 
+  function parseRgbChannel(tokenInput) {
+    const token = clean(tokenInput || '');
+    if (!token) return 0;
+    if (token.includes('%')) {
+      return clamp(Math.round((num(token.replace('%', '')) / 100) * 255), 0, 255);
+    }
+    return clamp(Math.round(num(token)), 0, 255);
+  }
+
+  function rgbaPartsFromColor(colorInput) {
+    const text = clean(colorInput || '');
+    if (!text) return null;
+
+    const rgba = text.match(/^rgba?\(([^)]+)\)$/i);
+    if (rgba) {
+      const parts = rgba[1].split(',').map((part) => part.trim());
+      if (parts.length >= 3) {
+        return {
+          r: parseRgbChannel(parts[0]),
+          g: parseRgbChannel(parts[1]),
+          b: parseRgbChannel(parts[2]),
+          a: parts.length >= 4 ? clamp(num(parts[3]), 0, 1) : 1,
+        };
+      }
+    }
+
+    const hex = text.match(/^#([0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i);
+    if (hex) {
+      let raw = hex[1];
+      if (raw.length === 3 || raw.length === 4) {
+        raw = raw.split('').map((x) => `${x}${x}`).join('');
+      }
+      const hasAlpha = raw.length === 8;
+      const value = parseInt(raw.slice(0, 6), 16);
+      const r = (value >> 16) & 255;
+      const g = (value >> 8) & 255;
+      const b = value & 255;
+      const a = hasAlpha ? clamp(parseInt(raw.slice(6, 8), 16) / 255, 0, 1) : 1;
+      return { r, g, b, a };
+    }
+
+    return null;
+  }
+
+  function rgbToCss(rgbInput, alphaInput = null) {
+    const rgb = rgbInput && typeof rgbInput === 'object' ? rgbInput : { r: 108, g: 117, b: 125, a: 1 };
+    const alpha = alphaInput === null ? clamp(num(rgb.a), 0, 1) : clamp(num(alphaInput), 0, 1);
+    if (alpha >= 0.999) return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+    return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+  }
+
+  function blendRgbColors(baseInput, tintInput, ratioInput = 0.5) {
+    const base = baseInput && typeof baseInput === 'object' ? baseInput : { r: 33, g: 37, b: 41, a: 1 };
+    const tint = tintInput && typeof tintInput === 'object' ? tintInput : base;
+    const ratio = clamp(num(ratioInput), 0, 1);
+    return {
+      r: Math.round((base.r * (1 - ratio)) + (tint.r * ratio)),
+      g: Math.round((base.g * (1 - ratio)) + (tint.g * ratio)),
+      b: Math.round((base.b * (1 - ratio)) + (tint.b * ratio)),
+      a: 1,
+    };
+  }
+
+  function linearizeChannel(valueInput) {
+    const value = clamp(num(valueInput), 0, 255) / 255;
+    if (value <= 0.03928) return value / 12.92;
+    return ((value + 0.055) / 1.055) ** 2.4;
+  }
+
+  function relativeLuminance(rgbInput) {
+    const rgb = rgbInput && typeof rgbInput === 'object' ? rgbInput : { r: 0, g: 0, b: 0 };
+    return (0.2126 * linearizeChannel(rgb.r))
+      + (0.7152 * linearizeChannel(rgb.g))
+      + (0.0722 * linearizeChannel(rgb.b));
+  }
+
+  function contrastRatio(firstInput, secondInput) {
+    const first = relativeLuminance(firstInput);
+    const second = relativeLuminance(secondInput);
+    const lighter = Math.max(first, second);
+    const darker = Math.min(first, second);
+    return (lighter + 0.05) / (darker + 0.05);
+  }
+
+  function pickReadableTextColor(backgroundInput) {
+    const background = backgroundInput && typeof backgroundInput === 'object'
+      ? backgroundInput
+      : { r: 33, g: 37, b: 41, a: 1 };
+    const light = { r: 245, g: 250, b: 255, a: 1 };
+    const dark = { r: 18, g: 25, b: 34, a: 1 };
+    const contrastWithLight = contrastRatio(background, light);
+    const contrastWithDark = contrastRatio(background, dark);
+    return contrastWithLight >= contrastWithDark ? light : dark;
+  }
+
+  function mutedReadableTextColor(backgroundInput, primaryInput) {
+    const background = backgroundInput && typeof backgroundInput === 'object'
+      ? backgroundInput
+      : { r: 33, g: 37, b: 41, a: 1 };
+    const primary = primaryInput && typeof primaryInput === 'object'
+      ? primaryInput
+      : pickReadableTextColor(background);
+    return blendRgbColors(background, primary, 0.74);
+  }
+
+  function activeAccentPalette(colorInput, elementInput = null) {
+    const accent = rgbaPartsFromColor(colorInput) || rgbaPartsFromColor('#0d6efd') || { r: 13, g: 110, b: 253, a: 1 };
+    let base = null;
+    if (elementInput && window.getComputedStyle) {
+      try {
+        base = rgbaPartsFromColor(window.getComputedStyle(elementInput).backgroundColor || '');
+      } catch (_err) {
+        base = null;
+      }
+    }
+    if (!base) {
+      base = document.body && window.getComputedStyle
+        ? rgbaPartsFromColor(window.getComputedStyle(document.body).backgroundColor || '')
+        : null;
+    }
+    const fallbackBase = base || { r: 34, g: 40, b: 49, a: 1 };
+    const blendedBackground = blendRgbColors(fallbackBase, accent, 0.22);
+    const textColor = pickReadableTextColor(blendedBackground);
+    const mutedTextColor = mutedReadableTextColor(blendedBackground, textColor);
+    return {
+      text: rgbToCss(textColor, 0.98),
+      muted: rgbToCss(mutedTextColor, 0.95),
+    };
+  }
+
   function clearOverlayActiveAccent(element) {
     if (!element || !element.style) return;
     element.style.removeProperty('--dash-active-color');
     element.style.removeProperty('--dash-active-color-soft');
     element.style.removeProperty('--dash-active-color-faint');
+    element.style.removeProperty('--dash-active-text-color');
+    element.style.removeProperty('--dash-active-muted-color');
   }
 
   function applyOverlayActiveAccent(element, colorInput) {
     if (!element || !element.style) return;
-    const color = clean(colorInput || '') || '#0d6efd';
+    const requested = clean(colorInput || '');
+    const color = rgbaPartsFromColor(requested) ? requested : '#0d6efd';
+    const palette = activeAccentPalette(color, element);
     element.style.setProperty('--dash-active-color', setColorAlpha(color, 0.98));
     element.style.setProperty('--dash-active-color-soft', setColorAlpha(color, 0.34));
     element.style.setProperty('--dash-active-color-faint', setColorAlpha(color, 0.2));
+    element.style.setProperty('--dash-active-text-color', palette.text);
+    element.style.setProperty('--dash-active-muted-color', palette.muted);
   }
 
   function setOverlayDetailActive(index) {
@@ -17524,6 +17840,39 @@
     }
   }
 
+  function safeChartResize(chart) {
+    if (!chart || typeof chart.resize !== 'function') return;
+    try {
+      chart.resize();
+    } catch (_err) {}
+  }
+
+  function scheduleCompactChartStabilize(chart) {
+    if (!chart) return;
+    const steps = [0, 90];
+    steps.forEach((delay) => {
+      setTimeout(() => {
+        safeChartResize(chart);
+        updateOverlayChartNow(chart);
+      }, delay);
+    });
+  }
+
+  function scheduleOverlayChartStabilize(chart) {
+    if (!chart) return;
+    const token = (S.overlayRedrawToken || 0) + 1;
+    S.overlayRedrawToken = token;
+    const steps = [0, 80, 210];
+    steps.forEach((delay) => {
+      setTimeout(() => {
+        if (S.overlayRedrawToken !== token) return;
+        if (chart !== S.fullChart) return;
+        safeChartResize(chart);
+        updateOverlayChartNow(chart);
+      }, delay);
+    });
+  }
+
   function updateOverlayChartNow(chart) {
     if (!chart || typeof chart.update !== 'function') return;
     try {
@@ -17537,26 +17886,8 @@
     const normalizedAlpha = clamp(num(alpha), 0.02, 1);
     const text = clean(color || '');
     if (!text) return `rgba(108, 117, 125, ${normalizedAlpha})`;
-
-    const rgba = text.match(/^rgba?\(([^)]+)\)$/i);
-    if (rgba) {
-      const parts = rgba[1].split(',').map((p) => p.trim());
-      if (parts.length >= 3) {
-        return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${normalizedAlpha})`;
-      }
-    }
-
-    const hex = text.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
-    if (hex) {
-      let raw = hex[1];
-      if (raw.length === 3) raw = raw.split('').map((x) => `${x}${x}`).join('');
-      const value = parseInt(raw, 16);
-      const r = (value >> 16) & 255;
-      const g = (value >> 8) & 255;
-      const b = value & 255;
-      return `rgba(${r}, ${g}, ${b}, ${normalizedAlpha})`;
-    }
-
+    const rgba = rgbaPartsFromColor(text);
+    if (rgba) return `rgba(${rgba.r}, ${rgba.g}, ${rgba.b}, ${normalizedAlpha})`;
     return text;
   }
 
@@ -18342,11 +18673,36 @@
     return element;
   }
 
+  function clearHoverPreviewAccent(element) {
+    if (!element || !element.style) return;
+    element.style.removeProperty('--dash-hover-accent');
+    element.style.removeProperty('--dash-hover-accent-soft');
+    element.style.removeProperty('--dash-hover-text-color');
+    element.style.removeProperty('--dash-hover-muted-color');
+  }
+
+  function applyHoverPreviewAccent(element, colorInput = '') {
+    if (!element || !element.style) return;
+    const requested = clean(colorInput || '');
+    const color = rgbaPartsFromColor(requested) ? requested : '';
+    if (!color) {
+      clearHoverPreviewAccent(element);
+      return;
+    }
+    const palette = activeAccentPalette(color, element);
+    element.style.setProperty('--dash-hover-accent', setColorAlpha(color, 0.96));
+    element.style.setProperty('--dash-hover-accent-soft', setColorAlpha(color, 0.2));
+    element.style.setProperty('--dash-hover-text-color', palette.text);
+    element.style.setProperty('--dash-hover-muted-color', palette.muted);
+  }
+
   function hideChartHoverPreview() {
     const element = document.getElementById('dash_hover_preview');
     if (!element) return;
     element.classList.add('d-none');
     element.innerHTML = '';
+    clearHoverPreviewAccent(element);
+    S.hoverPreviewAccentColor = '';
     S.hoverPreviewKey = '';
     S.hoverPreviewContextKey = '';
     S.hoverPreviewRenderToken += 1;
@@ -18516,7 +18872,14 @@
       });
       if (map.size > 0) return map;
     } catch (error) {
-      console.warn('Dashboard: impossible de charger products_price_history', error);
+      if (!isOptionalApiFailure(error)) {
+        dashboardWarn(
+          'hover-price-history',
+          'Dashboard: impossible de charger products_price_history',
+          error,
+          { cooldownMs: 90000 }
+        );
+      }
     }
 
     try {
@@ -18533,7 +18896,14 @@
         updatePriceRangeMap(map, productId, price);
       });
     } catch (error) {
-      console.warn('Dashboard: impossible de charger stock_log (prix)', error);
+      if (!isOptionalApiFailure(error)) {
+        dashboardWarn(
+          'hover-price-stocklog',
+          'Dashboard: impossible de charger stock_log (prix)',
+          error,
+          { cooldownMs: 90000 }
+        );
+      }
     }
 
     return map;
@@ -18549,7 +18919,12 @@
         return S.hoverPriceRangeByProductId;
       })
       .catch((error) => {
-        console.warn('Dashboard: erreur chargement prix mini/maxi pour survol', error);
+        dashboardWarn(
+          'hover-price-range-load',
+          'Dashboard: erreur chargement prix mini/maxi pour survol',
+          error,
+          { cooldownMs: 90000 }
+        );
         S.hoverPriceRangeLoaded = true;
         return S.hoverPriceRangeByProductId;
       })
@@ -20228,6 +20603,7 @@
       element.innerHTML = html;
       S.hoverPreviewKey = key;
     }
+    applyHoverPreviewAccent(element, S.hoverPreviewAccentColor);
     element.classList.remove('d-none');
     placeHoverPreview(element, point);
   }
@@ -20541,6 +20917,21 @@
     }
   }
 
+  function chartHoverAccentColor(chartInput, indexInput) {
+    const chart = chartInput;
+    const index = Number.isInteger(indexInput) ? indexInput : parseInt(String(indexInput || '-1'), 10);
+    if (!chart || !Number.isInteger(index) || index < 0) return '';
+    const ds = chart && chart.data && Array.isArray(chart.data.datasets) ? chart.data.datasets[0] : null;
+    if (!ds) return '';
+    const border = Array.isArray(ds.borderColor)
+      ? clean(ds.borderColor[index] || '')
+      : clean(ds.borderColor || '');
+    const background = Array.isArray(ds.backgroundColor)
+      ? clean(ds.backgroundColor[index] || '')
+      : clean(ds.backgroundColor || '');
+    return clean(border || background || '');
+  }
+
   function showChartEntityHoverPreview(chartIdInput, indexInput, contextDataInput, evt = null, chart = null, anchorEl = null) {
     const chartId = clean(chartIdInput || '');
     const index = Number.isInteger(indexInput) ? indexInput : parseInt(String(indexInput || '-1'), 10);
@@ -20549,6 +20940,8 @@
       hideChartHoverPreview();
       return;
     }
+
+    S.hoverPreviewAccentColor = chartHoverAccentColor(chart, index);
 
     if (chartId === 'risk' || chartId === 'due') {
       const row = contextData[index];
@@ -20594,6 +20987,7 @@
       ? element.closest('.dash-product-link, .dash-stock-facet-link')
       : null;
     if (!target) return false;
+    S.hoverPreviewAccentColor = '';
     if (target.classList && target.classList.contains('dash-no-hover-preview')) {
       hideChartHoverPreview();
       return false;
@@ -23050,6 +23444,33 @@
     return false;
   }
 
+  function setDashboardPendingDataState(activeInput = false) {
+    const active = activeInput === true;
+    const body = document.getElementById('dash_body');
+    if (body) body.classList.toggle('dash-pending-data', active);
+    if (active) {
+      const context = document.getElementById('dash_context');
+      if (context) context.textContent = langText('Chargement des données stock...', 'Loading stock data...');
+    }
+  }
+
+  function rowsContainMeaningfulData(rowsInput) {
+    const rows = Array.isArray(rowsInput) ? rowsInput : [];
+    return rows.some((row) => num(row && row.value) > 0 || num(row && row.amount) > 0 || num(row && row.calories) > 0);
+  }
+
+  function shouldHoldDashboardRender(allRowsInput, filteredRowsInput) {
+    const allRows = Array.isArray(allRowsInput) ? allRowsInput : [];
+    const filteredRows = Array.isArray(filteredRowsInput) ? filteredRowsInput : [];
+    const hasDomRows = sourceProductRows().length > 0;
+    if (!hasDomRows) return false;
+    if (rowsContainMeaningfulData(allRows) || rowsContainMeaningfulData(filteredRows)) return false;
+    if ((S.renderHoldCount || 0) >= 10) return false;
+    if (S.apiLoadPromise) return true;
+    if (!S.apiLoaded) return true;
+    return allRows.length === 0 || filteredRows.length === 0;
+  }
+
   function renderDashboard() {
     if (!document.getElementById('stock-analytics-dashboard')) return;
     const body = document.getElementById('dash_body');
@@ -23059,6 +23480,15 @@
 
     const allRaw = data(false);
     const filteredRaw = data(true);
+    if (shouldHoldDashboardRender(allRaw, filteredRaw)) {
+      S.renderHoldCount = (S.renderHoldCount || 0) + 1;
+      setDashboardPendingDataState(true);
+      scheduleRender();
+      return;
+    }
+
+    S.renderHoldCount = 0;
+    setDashboardPendingDataState(false);
     rebuildRowMetaIndex(allRaw);
     const all = allRaw.filter((row) => row.value > 0);
     const filtered = filteredRaw.filter((row) => row.value > 0);

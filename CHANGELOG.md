@@ -1,5 +1,18 @@
 # Changelog
 
+## [4.3.0] - 2026-02-20
+
+### Changed
+- Reworked compact chart controls layout for report mode with stable grouping and adaptive reflow on desktop/mobile.
+- Reworked fullscreen overlay controls layout with consistent control order and responsive wrapping.
+- Improved active/hover readability in overlay legend/details/takeaways with dynamic contrast-aware text colors.
+- Improved hover preview value chips/ranges with chart-driven accent colors and stronger text contrast.
+- Added chart redraw stabilization passes after chart creation/overlay open to reduce transient blank/misaligned render states.
+
+### Fixed
+- Reduced transient `0`/empty render flashes by delaying dashboard draw while stock data is still settling.
+- Hardened optional API failures for brands/prices (`userfields`, `products_price_history`, `stock_log`) to avoid blocking UI and reduce noisy repeated warnings.
+
 ## [4.2.0] - 2026-02-20
 
 ### Added
