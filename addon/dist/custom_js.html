@@ -10,7 +10,7 @@
   NERDCORE.registerAddon({
     id: 'statnerd',
     name: 'StatNerd',
-    version: '4.3.0',
+    version: '4.4.0',
     settingsSection: 'statnerd',
     settingsTitle: 'StatNerd',
     settingsIcon: 'fa-chart-line',
@@ -18,8 +18,6 @@
   const NERDCORE_DISABLE_LEGACY_SETTINGS = typeof NERDCORE.isLegacySettingsDisabled === 'function'
     ? !!NERDCORE.isLegacySettingsDisabled()
     : true;
-  const DASH_REPORT_QUERY_KEY = 'nerdstats';
-  const DASH_REPORT_QUERY_VALUE = 'report';
 
   const S = {
     active: 'all',
@@ -179,6 +177,9 @@
     addonUpdateInstalling: false,
     addonUpdateReleaseChoices: [],
     addonUpdateLocalVersionPromise: null,
+    brandEnrichmentMode: 'lazy_cache',
+    brandEnrichmentLastSignature: '',
+    brandEnrichmentCacheBuiltAt: 0,
   };
 
   const CHART_IDS = [
@@ -743,10 +744,22 @@
   const UI_STATE_STORAGE_KEY = 'grocy_dash_ui_state_v1';
   const ADDON_COMPATIBILITY_KEY = 'grocy_dash_addon_compatibility_v1';
   const ADDON_UPDATE_KEY = 'grocy_dash_addon_update_v1';
+  const DASH_REPORT_QUERY_KEY = 'nerdstats';
+  const DASH_REPORT_QUERY_VALUE = 'report';
+  const BRAND_ENRICHMENT_MODE_KEY = 'grocy_dash_brand_enrichment_mode_v1';
+  const BRAND_ENRICHMENT_LAST_SIG_KEY = 'grocy_dash_brand_enrichment_last_sig_v1';
+  const BRAND_ENRICHMENT_CACHE_KEY = 'grocy_dash_brand_enrichment_cache_v1';
+  const BRAND_ENRICHMENT_DEFAULT_MODE = 'lazy_cache';
+  const BRAND_ENRICHMENT_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+  const BRAND_ENRICHMENT_CACHE_MAX_ENTRIES = 500;
+  const BRAND_ENRICHMENT_REQUEST_BUDGET = 120;
+  const BRAND_ENRICHMENT_MAX_CONCURRENCY = 3;
+  const BRAND_ENRICHMENT_REQUEST_TIMEOUT_MS = 4500;
+  const ADDON_STATE_FILE_PROBE_DISABLED = true;
   const USER_DATA_TRANSFER_SCHEMA = 'statnerd-user-data';
   const USER_DATA_TRANSFER_SCHEMA_VERSION = 1;
   const USER_DATA_TRANSFER_STORAGE_PREFIX = 'grocy_dash_';
-  const ADDON_RUNTIME_VERSION = '4.3.0';
+  const ADDON_RUNTIME_VERSION = '4.4.0';
   const ADDON_UPDATE_DEFAULT_REPOSITORY = 'Raph563/StatNerd';
   const ADDON_UPDATE_DEFAULT_LOCAL_ROOT = 'C:\\Users\\Admin\\Documents\\Docker\\grocy';
   const ADDON_UPDATE_RELAY_BASE_URL = (NERDCORE && typeof NERDCORE.getUpdateApiBase === 'function')
@@ -8064,6 +8077,105 @@
     }
   }
 
+  function normalizeBrandEnrichmentMode(valueInput = '') {
+    const value = clean(valueInput || '').toLowerCase();
+    if (value === 'full' || value === 'off') return value;
+    return BRAND_ENRICHMENT_DEFAULT_MODE;
+  }
+
+  function loadBrandEnrichmentMode() {
+    let mode = BRAND_ENRICHMENT_DEFAULT_MODE;
+    try {
+      mode = normalizeBrandEnrichmentMode(localStorage.getItem(BRAND_ENRICHMENT_MODE_KEY) || BRAND_ENRICHMENT_DEFAULT_MODE);
+    } catch (_err) {
+      mode = BRAND_ENRICHMENT_DEFAULT_MODE;
+    }
+    S.brandEnrichmentMode = mode;
+    return mode;
+  }
+
+  function brandEnrichmentMode() {
+    if (!clean(S.brandEnrichmentMode || '')) {
+      return loadBrandEnrichmentMode();
+    }
+    S.brandEnrichmentMode = normalizeBrandEnrichmentMode(S.brandEnrichmentMode);
+    return S.brandEnrichmentMode;
+  }
+
+  function buildBrandEnrichmentSignature(productIdsInput = []) {
+    const ids = Array.from(new Set((Array.isArray(productIdsInput) ? productIdsInput : [])
+      .map((value) => num(value))
+      .filter((value) => value > 0)))
+      .sort((a, b) => a - b);
+    if (!ids.length) return '';
+    const head = ids.slice(0, 30).join(',');
+    const tail = ids.slice(-30).join(',');
+    return `${ids.length}|${head}|${tail}`;
+  }
+
+  function loadBrandEnrichmentCache(signatureInput = '') {
+    const signature = clean(signatureInput || '');
+    const map = new Map();
+    if (!signature) return map;
+    try {
+      const lastSig = clean(localStorage.getItem(BRAND_ENRICHMENT_LAST_SIG_KEY) || '');
+      if (!lastSig || lastSig !== signature) return map;
+      const raw = localStorage.getItem(BRAND_ENRICHMENT_CACHE_KEY);
+      if (!raw) return map;
+      const payload = JSON.parse(raw);
+      if (!payload || typeof payload !== 'object') return map;
+      const payloadSig = clean(payload.sig || '');
+      const payloadTs = Math.max(0, Math.floor(num(payload.ts)));
+      if (payloadSig !== signature || payloadTs <= 0) return map;
+      if (Date.now() - payloadTs > BRAND_ENRICHMENT_CACHE_TTL_MS) return map;
+      const entries = Array.isArray(payload.entries) ? payload.entries : [];
+      for (let i = 0; i < entries.length; i += 1) {
+        const row = entries[i];
+        if (!Array.isArray(row) || row.length < 2) continue;
+        const id = num(row[0]);
+        const brand = clean(row[1] || '');
+        if (id <= 0 || !brand) continue;
+        map.set(id, brand);
+      }
+      S.brandEnrichmentLastSignature = signature;
+      S.brandEnrichmentCacheBuiltAt = payloadTs;
+      return map;
+    } catch (_err) {
+      return map;
+    }
+  }
+
+  function saveBrandEnrichmentCache(signatureInput = '', mapInput = new Map()) {
+    const signature = clean(signatureInput || '');
+    const map = mapInput instanceof Map ? mapInput : new Map();
+    if (!signature || map.size <= 0) return;
+    const entries = Array.from(map.entries())
+      .filter(([id, brand]) => num(id) > 0 && !!clean(brand || ''))
+      .slice(0, BRAND_ENRICHMENT_CACHE_MAX_ENTRIES)
+      .map(([id, brand]) => [num(id), clean(brand || '')]);
+    if (!entries.length) return;
+    const payload = {
+      sig: signature,
+      ts: Date.now(),
+      entries,
+    };
+    try {
+      localStorage.setItem(BRAND_ENRICHMENT_LAST_SIG_KEY, signature);
+      localStorage.setItem(BRAND_ENRICHMENT_CACHE_KEY, JSON.stringify(payload));
+      S.brandEnrichmentLastSignature = signature;
+      S.brandEnrichmentCacheBuiltAt = payload.ts;
+    } catch (_err) {
+      // Ignore cache write issues.
+    }
+  }
+
+  function shouldFetchBrandEnrichmentFromApi(force = false) {
+    const mode = brandEnrichmentMode();
+    if (mode === 'off') return false;
+    if (mode === 'full') return true;
+    return force === true;
+  }
+
   function addonCompatibilityEmptyMappings() {
     return {
       groups: {},
@@ -8673,6 +8785,7 @@
   }
 
   function addonUpdateCandidateStateFileUrls() {
+    if (ADDON_STATE_FILE_PROBE_DISABLED) return [];
     const pathname = clean(window.location && window.location.pathname ? window.location.pathname : '');
     const baseCandidates = ['data/statnerd-addon-state.json', '/data/statnerd-addon-state.json', 'statnerd-addon-state.json'];
     const apiCandidates = [];
@@ -8703,6 +8816,7 @@
   }
 
   async function fetchAddonInstalledStateFromFile() {
+    if (ADDON_STATE_FILE_PROBE_DISABLED) return null;
     const urls = addonUpdateCandidateStateFileUrls();
     for (let i = 0; i < urls.length; i += 1) {
       const url = urls[i];
@@ -10119,7 +10233,7 @@
     syncAddonUpdateReleaseChoicesUi(state);
     syncStatNerdAboutInfoBlock(state);
     syncAddonUpdateSettingsSection();
-    refreshAddonInstalledVersionFromFile();
+    refreshAddonInstalledVersionFromFile().catch(() => null);
   }
 
   function setUserDataTransferStatus(text = '', level = 'muted') {
@@ -16189,12 +16303,15 @@
     return baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
   }
 
-  async function fetchJson(relativePath) {
+  async function fetchJson(relativePath, optionsInput = {}) {
+    const options = optionsInput && typeof optionsInput === 'object' ? optionsInput : {};
     const path = relativePath.startsWith('/') ? relativePath.slice(1) : relativePath;
-    const response = await fetch(`${apiBaseUrl()}${path}`, {
+    const requestOptions = {
       credentials: 'same-origin',
       headers: { Accept: 'application/json' },
-    });
+    };
+    if (options.signal) requestOptions.signal = options.signal;
+    const response = await fetch(`${apiBaseUrl()}${path}`, requestOptions);
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status} on ${relativePath}`);
@@ -16243,6 +16360,22 @@
 
   function isOptionalApiFailure(errorInput = null) {
     return isHttpErrorStatus(errorInput, [400, 401, 403, 404, 405]);
+  }
+
+  async function fetchApiJsonWithTimeout(relativePath, timeoutMsInput = 0) {
+    const timeoutMs = Math.max(0, Math.floor(num(timeoutMsInput)));
+    if (timeoutMs <= 0 || typeof AbortController === 'undefined') {
+      return fetchJson(relativePath);
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      try { controller.abort(); } catch (_err) {}
+    }, timeoutMs);
+    try {
+      return await fetchJson(relativePath, { signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   function extractArray(payload) {
@@ -16753,22 +16886,29 @@
     return '';
   }
 
-  async function loadBrandMapByProductApi(productIds, brandFieldNamesNorm, brandFieldIds) {
+  async function loadBrandMapByProductApi(productIds, brandFieldNamesNorm, brandFieldIds, optionsInput = {}) {
+    const options = optionsInput && typeof optionsInput === 'object' ? optionsInput : {};
+    const maxRequests = Math.max(1, Math.floor(num(options.maxRequests) || BRAND_ENRICHMENT_REQUEST_BUDGET));
+    const timeoutMs = Math.max(0, Math.floor(num(options.timeoutMs) || BRAND_ENRICHMENT_REQUEST_TIMEOUT_MS));
+    const workerLimit = Math.max(1, Math.floor(num(options.workerCount) || BRAND_ENRICHMENT_MAX_CONCURRENCY));
     const map = new Map();
     const uniqueIds = Array.from(new Set(productIds.map((id) => num(id)).filter((id) => id > 0)));
     if (uniqueIds.length === 0) return { map, requested: 0, failed: 0 };
+    const limitedIds = uniqueIds.slice(0, maxRequests);
 
     let cursor = 0;
     let failed = 0;
-    const workerCount = Math.min(8, uniqueIds.length);
+    const workerCount = Math.min(workerLimit, limitedIds.length);
+    const failureCutoff = Math.max(10, Math.floor(limitedIds.length * 0.6));
 
     async function worker() {
-      while (cursor < uniqueIds.length) {
+      while (cursor < limitedIds.length) {
+        if (failed >= failureCutoff) break;
         const index = cursor;
         cursor += 1;
-        const productId = uniqueIds[index];
+        const productId = limitedIds[index];
         try {
-          const payload = await fetchJson(`api/userfields/products/${productId}`);
+          const payload = await fetchApiJsonWithTimeout(`api/userfields/products/${productId}`, timeoutMs);
           const brand = extractBrandValueFromUserfieldsPayload(payload, brandFieldNamesNorm, brandFieldIds);
           if (brand) map.set(productId, brand);
         } catch (error) {
@@ -16778,11 +16918,29 @@
     }
 
     await Promise.all(Array.from({ length: workerCount }, () => worker()));
-    return { map, requested: uniqueIds.length, failed };
+    return { map, requested: limitedIds.length, failed };
   }
 
-  async function loadBrandMapFromApi(productIds) {
-    const map = new Map();
+  async function loadBrandMapFromApi(productIds, optionsInput = {}) {
+    const options = optionsInput && typeof optionsInput === 'object' ? optionsInput : {};
+    const signature = buildBrandEnrichmentSignature(productIds);
+    const cachedMap = loadBrandEnrichmentCache(signature);
+    if (cachedMap.size > 0) {
+      S.apiBrandMethod = 'cache';
+      S.apiBrandRequests = 0;
+      S.apiBrandFailures = 0;
+    }
+    if (options.allowNetwork !== true) {
+      if (cachedMap.size <= 0) {
+        const mode = brandEnrichmentMode();
+        S.apiBrandMethod = mode === 'off' ? 'disabled' : 'lazy_cache';
+        S.apiBrandRequests = 0;
+        S.apiBrandFailures = 0;
+      }
+      return cachedMap;
+    }
+
+    const map = new Map(cachedMap);
     try {
       let userfieldsPayload;
       try {
@@ -16801,13 +16959,20 @@
 
       const brandMeta = detectBrandUserfieldMeta(userfields);
       S.apiBrandFieldNames = Array.from(brandMeta.namesNorm);
-      if (brandMeta.namesNorm.size === 0 || productIds.length === 0) return map;
+      if (brandMeta.namesNorm.size === 0 || productIds.length === 0) {
+        if (map.size > 0 && signature) saveBrandEnrichmentCache(signature, map);
+        return map;
+      }
 
-      const result = await loadBrandMapByProductApi(productIds, brandMeta.namesNorm, brandMeta.ids);
+      const result = await loadBrandMapByProductApi(productIds, brandMeta.namesNorm, brandMeta.ids, options);
+      result.map.forEach((brand, productId) => {
+        map.set(productId, brand);
+      });
       S.apiBrandMethod = 'api/userfields/products/<id>';
       S.apiBrandRequests = result.requested;
       S.apiBrandFailures = result.failed;
-      return result.map;
+      if (signature && map.size > 0) saveBrandEnrichmentCache(signature, map);
+      return map;
     } catch (error) {
       const optionalFailure = isOptionalApiFailure(error);
       S.apiBrandMethod = optionalFailure ? 'unsupported' : 'failed';
@@ -16844,6 +17009,8 @@
       S.apiBrandRequests = 0;
       S.apiBrandFailures = 0;
       S.apiBrandFieldNames = [];
+      S.brandEnrichmentLastSignature = '';
+      S.brandEnrichmentCacheBuiltAt = 0;
       resetKpiLifetimeTotalsState();
     }
 
@@ -16895,7 +17062,13 @@
       const domProductIds = sourceProductRows().map((r) => rowProductId(r)).filter((id) => id > 0);
       const apiProductIds = Array.from(S.apiStockByProductId.keys());
       const productIds = Array.from(new Set([...domProductIds, ...apiProductIds]));
-      S.apiBrandByProductId = await loadBrandMapFromApi(productIds);
+      const allowBrandNetwork = shouldFetchBrandEnrichmentFromApi(force);
+      S.apiBrandByProductId = await loadBrandMapFromApi(productIds, {
+        allowNetwork: allowBrandNetwork,
+        maxRequests: BRAND_ENRICHMENT_REQUEST_BUDGET,
+        workerCount: BRAND_ENRICHMENT_MAX_CONCURRENCY,
+        timeoutMs: BRAND_ENRICHMENT_REQUEST_TIMEOUT_MS,
+      });
       S.apiLoaded = S.apiStockByProductId.size > 0 || S.apiBrandByProductId.size > 0;
       return true;
     })().catch((error) => {
@@ -29355,14 +29528,27 @@
         return null;
       }
     };
+    const safeRunAsync = (label, fn) => {
+      try {
+        return Promise.resolve(fn()).catch((error) => {
+          console.error(`[custom_js] ${label} failed`, error);
+          return null;
+        });
+      } catch (error) {
+        console.error(`[custom_js] ${label} failed`, error);
+        return Promise.resolve(null);
+      }
+    };
 
     safeRun('loadAiSettings', () => loadAiSettings());
     safeRun('loadBrandLogoSettings', () => loadBrandLogoSettings());
+    safeRun('loadBrandEnrichmentMode', () => loadBrandEnrichmentMode());
     safeRun('loadUiState', () => loadUiState());
     safeRun('loadAddonCompatibilityState', () => loadAddonCompatibilityState());
     safeRun('loadAddonUpdateState', () => loadAddonUpdateState());
 
     if (safeRun('renderStatNerdSettingsPage', () => renderStatNerdSettingsPage()) === true) {
+      safeRunAsync('refreshAddonInstalledVersionFromFile', () => refreshAddonInstalledVersionFromFile());
       return;
     }
 
@@ -29376,12 +29562,15 @@
     if (document.body) document.body.classList.toggle('dash-report-page', reportMode);
 
     // Product helper features are now maintained in the dedicated ProductHelper addon.
+    safeRun('initTabs', () => initTabs());
 
-    safeRun('registerFacetFilter', () => registerFacetFilter());
     if (!reportMode) {
-      safeRun('initTabs', () => initTabs());
       return;
     }
+
+    S.dashboardOpen = true;
+    S.dashboardView = 'stats';
+    safeRun('registerFacetFilter', () => registerFacetFilter());
 
     safeRun('initDashboard', () => initDashboard());
     safeRun('applyDashboardReportModeLayout', () => applyDashboardReportModeLayout());
@@ -29401,6 +29590,8 @@
         setTimeout(scheduleRender, 0);
       });
     }
+
+    safeRunAsync('refreshAddonInstalledVersionFromFile', () => refreshAddonInstalledVersionFromFile());
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

@@ -1,5 +1,23 @@
 # Changelog
 
+## [4.4.0] - 2026-02-20
+
+### Added
+- Internal brand enrichment strategy controls:
+  - `brand_enrichment_mode` (`lazy_cache` default, `full`, `off`)
+  - cached brand map signature storage for reuse between renders.
+
+### Changed
+- Stock overview behavior split by mode:
+  - `/stockoverview` keeps stock page flow and no longer initializes full StatNerd dashboard runtime.
+  - `/stockoverview?nerdstats=report` keeps dashboard-first layout and hides stock table/filter rows.
+- Brand enrichment no longer performs massive eager per-product userfield calls by default.
+- Addon installed-version discovery now avoids runtime state-file probing loops (`*-addon-state.json`) and relies on local/update state first.
+
+### Fixed
+- Hardened async init paths with guarded promise execution to prevent unhandled rejections during startup.
+- Reduced settings-page mutation overhead to lower Firefox slowdown/crash risk.
+
 ## [4.3.0] - 2026-02-20
 
 ### Changed
