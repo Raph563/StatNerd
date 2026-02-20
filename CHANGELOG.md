@@ -1,5 +1,11 @@
 # Changelog
 
+## [4.1.2] - 2026-02-20
+
+### Fixed
+- Removed heavy overlay MutationObserver re-apply loop on StatNerd settings page.
+- Overlay visibility is now enforced once without persistent observers, preventing browser freeze on `/stocksettings?statnerd=1`.
+
 ## [4.1.1] - 2026-02-20
 
 ### Fixed
